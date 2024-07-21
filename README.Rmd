@@ -1,0 +1,88 @@
+---
+title: "Drug Consumption Data Analysis"
+output: github_document
+---
+
+```{r warning=FALSE, message=FALSE}
+library(tidyverse)
+library(viridis)
+library(hrbrthemes)
+library(RColorBrewer)
+
+```
+
+> ## load dataset
+```{r}
+data = read.csv("drug.csv")
+head(data, n=3)
+```
+
+> ## give factor levels to education
+```{r}
+data$Education = factor(data$Education, levels=c("Doctorate Degree", "Masters Degree",
+                                "University Degree", "Professional Certificate/ Diploma",
+                                "Some College,No Certificate Or Degree", "Left School at 18 years",
+                                "Left School at 17 years", "Left School at 16 years",
+                                "Left School Before 16 years"))
+```
+
+> ## create seperate datasets for features and labels
+```{r}
+labels = data[, 14:32]
+features = data[, 1:13]
+```
+
+
+> ## check the usage level (addiction) of each drug
+```{r}
+drug.tb = gather(labels, key="drug")
+
+ggplot(drug.tb, aes(y=value)) +
+  geom_bar() +
+  facet_wrap(~drug) +
+  scale_color_ipsum()
+  
+```
+
+> ## create a dataframe **temp** of indivuals who actively uses dangerous drugs 
+```{r warning=FALSE}
+drugs = colnames(labels)
+dng.drugs = c("Heroin", "Meth", "Crack", "Coke")
+recent.usage = c("CL6", "CL5", "CL4")
+
+temp = data %>%
+  filter(Heroin == recent.usage | Meth == recent.usage | Crack == recent.usage | Coke == recent.usage)
+
+```
+
+> ## plot the distribution in education levels in **temp**
+```{r}
+ggplot(temp, aes(y=Education)) +
+  geom_bar(aes(fill=Education)) +
+  scale_fill_brewer(palette="RdBu") +
+  labs(title="dangerous drug usage in education groups")
+
+```
+
+> ## plot the distribution in age levels in **temp**
+```{r}
+ggplot(temp, aes(y=Age)) +
+  geom_bar(aes(fill=Age)) + 
+  scale_fill_ft() +
+  labs(title="dagerous drugs usage in age groups")
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
