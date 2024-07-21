@@ -9,6 +9,7 @@ library(viridis)
 library(hrbrthemes)
 library(RColorBrewer)
 library(ggjoy)
+library(cowplot)
 
 ```
 
@@ -151,7 +152,59 @@ for (i in hallucinogens) {
 
 ```
 
+> ## Analysis on Cannabis
+> #### age group distribution in each usage group
+
 ```{r}
+i = c("Cannabis")
+data %>%
+  group_by(!!sym(i), Age) %>%
+  tally() %>%
+  ggplot(., aes(y=Age, x=n, fill=Age)) +
+  geom_bar(stat="identity") +
+  scale_fill_ft() +
+  facet_wrap(vars(!!sym(i)))
+  
+  
+```
+
+```{r}
+```
+
+> ## popular Ages groups in each drug
+
+```{r}
+plt1 = data %>%
+  gather(., key="drug", value="usage", drug.cols) %>%
+  filter(usage >= 4) %>%
+  ggplot(., aes(y=drug, fill=Age)) +
+  geom_bar(position="fill") +
+  scale_fill_brewer(palette="Accent") +
+  theme(legend.position="bottom")
+
+age.popular.drugs = data %>%
+  gather(., key="drug", value="usage", drug.cols) %>%
+  filter(usage >= 4) %>%
+  group_by(Age, drug) %>%
+  tally() %>%
+  group_by(Age) %>%
+  slice_max(order_by=n, n=7) %>%
+  ungroup() %>%
+  distinct(drug)
+
+plt2 = data %>%
+  gather(., key="drug", value="usage", drug.cols) %>%
+  filter(usage >= 4) %>%
+  mutate(drug = if_else(drug %in% c(age.popular.drugs)$drug, drug, "other")) %>%
+  ggplot(., aes(y=Age, fill=drug)) +
+  geom_bar(position="fill") +
+  scale_fill_brewer(palette="Paired") +
+  theme(legend.position="bottom")
+
+plot_grid(plt1, plt2, ncol=2, rel_heights=c(2, 1))
+print(plt1)
+print(plt2)
+
 ```
 
 ```{r}
@@ -167,12 +220,6 @@ for (i in hallucinogens) {
 ```
 
 ```{r}
-```
 
-```{r}
-```
-
-```{r}
-
-display.brewer.all()
+brewer.pal.info
 ```

@@ -7,6 +7,7 @@ library(viridis)
 library(hrbrthemes)
 library(RColorBrewer)
 library(ggjoy)
+library(cowplot)
 ```
 
 > ## load dataset
@@ -184,8 +185,122 @@ for (i in hallucinogens) {
 
 ![](README_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-13-2.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-13-3.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-13-4.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-13-5.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-13-6.png)<!-- -->
 
+> ## Analysis on Cannabis
+>
+> #### age group distribution in each usage group
+
 ``` r
-display.brewer.all()
+i = c("Cannabis")
+data %>%
+  group_by(!!sym(i), Age) %>%
+  tally() %>%
+  ggplot(., aes(y=Age, x=n, fill=Age)) +
+  geom_bar(stat="identity") +
+  scale_fill_ft() +
+  facet_wrap(vars(!!sym(i)))
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
+
+> ## popular Ages groups in each drug
+
+``` r
+plt1 = data %>%
+  gather(., key="drug", value="usage", drug.cols) %>%
+  filter(usage >= 4) %>%
+  ggplot(., aes(y=drug, fill=Age)) +
+  geom_bar(position="fill") +
+  scale_fill_brewer(palette="Accent") +
+  theme(legend.position="bottom")
+```
+
+    ## Warning: Using an external vector in selections was deprecated in tidyselect 1.1.0.
+    ## ℹ Please use `all_of()` or `any_of()` instead.
+    ##   # Was:
+    ##   data %>% select(drug.cols)
+    ## 
+    ##   # Now:
+    ##   data %>% select(all_of(drug.cols))
+    ## 
+    ## See <https://tidyselect.r-lib.org/reference/faq-external-vector.html>.
+    ## This warning is displayed once every 8 hours.
+    ## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
+    ## generated.
+
+``` r
+age.popular.drugs = data %>%
+  gather(., key="drug", value="usage", drug.cols) %>%
+  filter(usage >= 4) %>%
+  group_by(Age, drug) %>%
+  tally() %>%
+  group_by(Age) %>%
+  slice_max(order_by=n, n=7) %>%
+  ungroup() %>%
+  distinct(drug)
+
+plt2 = data %>%
+  gather(., key="drug", value="usage", drug.cols) %>%
+  filter(usage >= 4) %>%
+  mutate(drug = if_else(drug %in% c(age.popular.drugs)$drug, drug, "other")) %>%
+  ggplot(., aes(y=Age, fill=drug)) +
+  geom_bar(position="fill") +
+  scale_fill_brewer(palette="Paired") +
+  theme(legend.position="bottom")
+
+plot_grid(plt1, plt2, ncol=2, rel_heights=c(2, 1))
+```
+
+![](README_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
+
+``` r
+print(plt1)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-16-2.png)<!-- -->
+
+``` r
+print(plt2)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-16-3.png)<!-- -->
+
+``` r
+brewer.pal.info
+```
+
+    ##          maxcolors category colorblind
+    ## BrBG            11      div       TRUE
+    ## PiYG            11      div       TRUE
+    ## PRGn            11      div       TRUE
+    ## PuOr            11      div       TRUE
+    ## RdBu            11      div       TRUE
+    ## RdGy            11      div      FALSE
+    ## RdYlBu          11      div       TRUE
+    ## RdYlGn          11      div      FALSE
+    ## Spectral        11      div      FALSE
+    ## Accent           8     qual      FALSE
+    ## Dark2            8     qual       TRUE
+    ## Paired          12     qual       TRUE
+    ## Pastel1          9     qual      FALSE
+    ## Pastel2          8     qual      FALSE
+    ## Set1             9     qual      FALSE
+    ## Set2             8     qual       TRUE
+    ## Set3            12     qual      FALSE
+    ## Blues            9      seq       TRUE
+    ## BuGn             9      seq       TRUE
+    ## BuPu             9      seq       TRUE
+    ## GnBu             9      seq       TRUE
+    ## Greens           9      seq       TRUE
+    ## Greys            9      seq       TRUE
+    ## Oranges          9      seq       TRUE
+    ## OrRd             9      seq       TRUE
+    ## PuBu             9      seq       TRUE
+    ## PuBuGn           9      seq       TRUE
+    ## PuRd             9      seq       TRUE
+    ## Purples          9      seq       TRUE
+    ## RdPu             9      seq       TRUE
+    ## Reds             9      seq       TRUE
+    ## YlGn             9      seq       TRUE
+    ## YlGnBu           9      seq       TRUE
+    ## YlOrBr           9      seq       TRUE
+    ## YlOrRd           9      seq       TRUE
