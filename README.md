@@ -8,6 +8,9 @@ library(hrbrthemes)
 library(RColorBrewer)
 library(ggjoy)
 library(cowplot)
+library(corrplot)
+library(rcompanion)
+library(corrr)
 ```
 
 > ## load dataset
@@ -87,10 +90,11 @@ features = data[, 1:13]
 ``` r
 drug.tb = gather(labels, key="drug")
 
-ggplot(drug.tb, aes(y=value)) +
-  geom_bar() +
+ggplot(drug.tb, aes(x=value)) +
+  geom_bar(aes(fill=as.factor(value))) +
   facet_wrap(~drug) +
-  scale_color_ipsum()
+  scale_fill_brewer(palette="Spectral") +
+  theme(legend.position="bottom")
 ```
 
 ![](README_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
@@ -122,7 +126,7 @@ ggplot(temp, aes(y=Education)) +
 ``` r
 ggplot(temp, aes(y=Age)) +
   geom_bar(aes(fill=Age)) + 
-  scale_fill_ft() +
+  scale_fill_ipsum() +
   labs(title="dagerous drugs usage in age groups")
 ```
 
@@ -208,6 +212,10 @@ data %>%
 plt1 = data %>%
   gather(., key="drug", value="usage", drug.cols) %>%
   filter(usage >= 4) %>%
+  mutate(drug = fct_reorder(.f = drug,
+                            .x = Age,
+                            .fun = function(.x) mean(.x == "18 - 24"),
+                            .desc = T)) %>%
   ggplot(., aes(y=drug, fill=Age)) +
   geom_bar(position="fill") +
   scale_fill_brewer(palette="Accent") +
@@ -250,19 +258,186 @@ plt2 = data %>%
 plot_grid(plt1, plt2, ncol=2, rel_heights=c(2, 1))
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
 
 ``` r
 print(plt1)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-16-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-15-2.png)<!-- -->
 
 ``` r
 print(plt2)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-16-3.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-15-3.png)<!-- --> \> \##
+popular drugs in education levels
+
+``` r
+education.popular.drugs = data %>%
+  gather(key="drug", value="usage", drug.cols) %>%
+  filter(usage >= 4) %>%
+  group_by(Education, drug) %>%
+  tally() %>%
+  slice_max(order_by=n, n=7) %>%
+  ungroup() %>%
+  distinct(drug) %>%
+  pull()
+
+data %>%
+  gather(key="drug", value="usage", drug.cols) %>%
+  filter(usage >= 4) %>%
+  mutate(drug = if_else(drug %in% education.popular.drugs, drug, "other")) %>%
+  ggplot(aes(y=Education, fill=drug)) +
+  geom_bar(position="fill") +
+  scale_fill_brewer(palette="Paired")
+```
+
+![](README_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
+
+> ## popular drugs in Countries
+
+``` r
+country.popular.drugs = data %>%
+  gather(key="drug", value="usage", drug.cols) %>%
+  filter(usage >= 4) %>%
+  group_by(Country, drug) %>%
+  tally() %>%
+  slice_max(order_by=n, n=7) %>%
+  ungroup() %>%
+  distinct(drug) %>%
+  pull()
+
+data %>%
+  gather(key="drug", value="usage", drug.cols) %>%
+  filter(usage >= 4) %>%
+  mutate(drug = if_else(drug %in% country.popular.drugs, drug, "other")) %>%
+  ggplot(aes(y=Country, fill=drug)) +
+  geom_bar(position="fill") +
+  scale_fill_brewer(palette="Paired")
+```
+
+![](README_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
+
+> legal constraint in countries
+
+``` r
+# Group 1: Low Perceived Risk
+low_perceived_risk <- c("Alcohol", "Caff", "Choc")
+
+# Group 2: Moderate Perceived Risk
+moderate_perceived_risk <- c("Nicotine", "Benzos", "Amphet", "Ketamine", "Meth", "Cannabis")
+
+# Group 3: High Perceived Risk
+high_perceived_risk <- c("Coke", "Crack", "Ecstasy", "Heroin", "LSD", "Mushrooms", "Amyl", "Legalh", "Semer", "VSA")
+
+data %>%
+  gather(key="drug", value="usage", drug.cols) %>%
+  filter(usage >= 4) %>%
+  mutate(drug.risk = case_when(drug %in% low_perceived_risk ~ "low",
+                               drug %in% moderate_perceived_risk ~ "moderate",
+                               drug %in% high_perceived_risk ~ "high",
+                               T ~ "unknown")) %>%
+  mutate(drug.risk = factor(drug.risk, levels=c("low", "moderate", "high"))) %>%
+  mutate(Country = fct_reorder(.f = Country,
+                               .x = drug.risk,
+                               .fun = function(.x) mean(.x == "high"),
+                               .desc = T)) %>%
+  ggplot(aes(y=Country, fill=drug.risk)) +
+  geom_bar(position="fill") +
+  scale_fill_brewer(direction = 1)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->
+
+> ## popular drugs within genders
+
+``` r
+lvls <- data %>%
+  gather(key="drug", value="usage", drug.cols) %>%
+  filter(usage >= 4) %>%
+  count(drug, Gender) %>%
+  group_by(drug) %>%
+  mutate(prop = prop.table(n)) %>%
+  filter(Gender == "Female") %>%
+  arrange(prop) %>%
+  pull(drug) %>%
+  as.character()
+
+data %>%
+  gather(key="drug", value="usage", drug.cols) %>%
+  filter(usage >= 4) %>%
+  mutate(drug = factor(drug, levels=lvls)) %>%
+  ggplot(aes(y=drug, fill=Gender)) +
+  geom_bar(position="fill")
+```
+
+![](README_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
+
+``` r
+data %>%
+  gather(key="drug", value="usage", drug.cols) %>%
+  filter(usage >= 4) %>%
+  mutate(drug=fct_reorder(.f = drug, 
+                          .x = Gender,
+                          .fun = function(.x) mean(.x == "Female"),
+                          .desc = TRUE)) %>%
+  ggplot(aes(y=drug, fill=Gender)) +
+  geom_bar(position="fill") +
+  scale_fill_brewer(palette="Pastel1")
+```
+
+![](README_files/figure-gfm/unnamed-chunk-19-2.png)<!-- -->
+
+> ## corealtion among drugs
+
+``` r
+data %>%
+  gather(key="drug", value="usage", drug.cols) %>%
+  filter(usage >= 4) %>%
+  spread(key="drug", value="usage") %>%
+  mutate(across(drug.cols, ~replace_na(., 0))) %>%
+  select(all_of(drug.cols)) %>%
+  cor(., use = "complete.obs") %>%
+  corrplot(., method = "square", type = "lower", order = 'FPC', tl.col = "black", tl.srt = 45, diag = F)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->
+
+``` r
+data %>%
+  select(all_of(drug.cols)) %>%
+  cor(., use = "complete.obs") %>%
+  corrplot(., method = "square", type = "lower", order = 'FPC', tl.col = "black", tl.srt = 45, diag = F)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-20-2.png)<!-- -->
+
+``` r
+v1 <- data %>%
+  gather(key="drug", value="usage", drug.cols) %>%
+  mutate(usage = if_else(usage <= 4, "No", "Yes")) %>%
+  mutate(usage = factor(usage)) %>%
+  spread(key="drug", value="usage") %>%
+  select(all_of(drug.cols)) %>%
+  select(-all_of("Semer")) %>%
+  colpair_map(., cramerV)
+
+v1[, -1][is.na(v1[, -1])] = 1
+mat = as.matrix(v1[, -1])
+colnames(mat) = colnames(v1[, -1])
+rownames(mat) = colnames(v1[, -1])
+
+corrplot(mat, method = "square", type = "lower", order = 'FPC', tl.col = "black", tl.srt = 45, diag = F)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-20-3.png)<!-- -->
+
+``` r
+display.brewer.all()
+```
+
+![](README_files/figure-gfm/unnamed-chunk-30-1.png)<!-- -->
 
 ``` r
 brewer.pal.info
