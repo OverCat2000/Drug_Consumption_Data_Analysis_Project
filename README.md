@@ -17,6 +17,8 @@ library(corrr)
 
 ``` r
 data = read.csv("drug.csv")
+data <- data %>%
+  select(-c(Semer))
 head(data, n=3)
 ```
 
@@ -32,10 +34,10 @@ head(data, n=3)
     ## 1    CL2  CL0    CL2  CL6      CL0  CL5  CL0   CL0     CL0    CL0      CL0
     ## 2    CL2  CL2    CL0  CL6      CL4  CL6  CL3   CL0     CL4    CL0      CL2
     ## 3    CL0  CL0    CL0  CL6      CL3  CL4  CL0   CL0     CL0    CL0      CL0
-    ##   Legalh LSD Meth Mushrooms Nicotine Semer VSA
-    ## 1    CL0 CL0  CL0       CL0      CL2   CL0 CL0
-    ## 2    CL0 CL2  CL3       CL0      CL4   CL0 CL0
-    ## 3    CL0 CL0  CL0       CL1      CL0   CL0 CL0
+    ##   Legalh LSD Meth Mushrooms Nicotine VSA
+    ## 1    CL0 CL0  CL0       CL0      CL2 CL0
+    ## 2    CL0 CL2  CL3       CL0      CL4 CL0
+    ## 3    CL0 CL0  CL0       CL1      CL0 CL0
 
 > ## give factor levels to education
 
@@ -51,7 +53,7 @@ data$Education = factor(data$Education, levels=c("Doctorate Degree", "Masters De
 
 ``` r
 data = data %>%
-  mutate(across(c(14:32), ~ recode(., 
+  mutate(across(c(14:31), ~ recode(., 
                                 'CL0'= 0,
                                 'CL1'= 1,
                                 'CL2'= 2,
@@ -65,7 +67,7 @@ data = data %>%
 > ## group column names
 
 ``` r
-drug.cols = colnames(data[, 14:32])
+drug.cols = colnames(data[, 14:31])
 score.cols = colnames(data[, 7:13])
 feature.cols = colnames(data[, 1:6])
 ```
@@ -73,15 +75,19 @@ feature.cols = colnames(data[, 1:6])
 > ## create drug types
 
 ``` r
-stimulants <- c("Amphet", "Caff", "Coke", "Crack", "Meth", "Nicotine")
+# stimulants <- c("Amphet", "Caff", "Coke", "Crack", "Meth", "Nicotine")
+# depressants <- c("Alcohol", "Benzos", "Heroin", "Legalh", "Amyl", "VSA")
+# hallucinogens <- c("LSD", "Mushrooms", "Ketamine", "Cannabis", "Ecstasy", "Choc")
+
+stimulants <- c("Amphet", "Coke", "Crack", "Meth", "Nicotine")
 depressants <- c("Alcohol", "Benzos", "Heroin", "Legalh", "Amyl", "VSA")
-hallucinogens <- c("LSD", "Mushrooms", "Ketamine", "Cannabis", "Ecstasy", "Choc")
+hallucinogens <- c("LSD", "Mushrooms", "Ketamine", "Cannabis", "Ecstasy")
 ```
 
 > ## create seperate datasets for features and labels
 
 ``` r
-labels = data[, 14:32]
+labels = data[, 14:31]
 features = data[, 1:13]
 ```
 
@@ -138,8 +144,23 @@ ggplot(temp, aes(y=Age)) +
 df.score = labels %>%
   bind_cols(data[, 7:13])
 
-df.score.pivot = gather(df.score, key="drug", "usage", 1:19)
+df.score.pivot = gather(df.score, key="drug", "usage", drug.cols)
+```
 
+    ## Warning: Using an external vector in selections was deprecated in tidyselect 1.1.0.
+    ## ℹ Please use `all_of()` or `any_of()` instead.
+    ##   # Was:
+    ##   data %>% select(drug.cols)
+    ## 
+    ##   # Now:
+    ##   data %>% select(all_of(drug.cols))
+    ## 
+    ## See <https://tidyselect.r-lib.org/reference/faq-external-vector.html>.
+    ## This warning is displayed once every 8 hours.
+    ## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
+    ## generated.
+
+``` r
 df.score.pivot %>%
   filter(usage >= 4) %>%
   filter(drug %in% dng.drugs) %>%
@@ -155,7 +176,7 @@ df.score.pivot %>%
 ``` r
 color = brewer.pal(5, "Spectral")
 
-for (i in hallucinogens) {
+for (i in stimulants) {
   p = gather(data, key="score", value="value", score.cols) %>%
     filter(!!sym(i) >=4) %>%
     ggplot(., aes(x=value)) +
@@ -187,7 +208,7 @@ for (i in hallucinogens) {
     ## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
     ## generated.
 
-![](README_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-13-2.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-13-3.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-13-4.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-13-5.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-13-6.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-13-2.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-13-3.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-13-4.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-13-5.png)<!-- -->
 
 > ## Analysis on Cannabis
 >
@@ -220,22 +241,7 @@ plt1 = data %>%
   geom_bar(position="fill") +
   scale_fill_brewer(palette="Accent") +
   theme(legend.position="bottom")
-```
 
-    ## Warning: Using an external vector in selections was deprecated in tidyselect 1.1.0.
-    ## ℹ Please use `all_of()` or `any_of()` instead.
-    ##   # Was:
-    ##   data %>% select(drug.cols)
-    ## 
-    ##   # Now:
-    ##   data %>% select(all_of(drug.cols))
-    ## 
-    ## See <https://tidyselect.r-lib.org/reference/faq-external-vector.html>.
-    ## This warning is displayed once every 8 hours.
-    ## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
-    ## generated.
-
-``` r
 age.popular.drugs = data %>%
   gather(., key="drug", value="usage", drug.cols) %>%
   filter(usage >= 4) %>%
@@ -420,7 +426,6 @@ v1 <- data %>%
   mutate(usage = factor(usage)) %>%
   spread(key="drug", value="usage") %>%
   select(all_of(drug.cols)) %>%
-  select(-all_of("Semer")) %>%
   colpair_map(., cramerV)
 
 v1[, -1][is.na(v1[, -1])] = 1
@@ -433,11 +438,37 @@ corrplot(mat, method = "square", type = "lower", order = 'FPC', tl.col = "black"
 
 ![](README_files/figure-gfm/unnamed-chunk-20-3.png)<!-- -->
 
+> ## density in usgae groups in each drug for each score
+
+<img src="README_files/figure-gfm/unnamed-chunk-21-1.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-21-2.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-21-3.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-21-4.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-21-5.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-21-6.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-21-7.png" style="display: block; margin: auto;" />
+
+> ## boxplot distribution in usage groups in each drug for each score
+
+<img src="README_files/figure-gfm/unnamed-chunk-22-1.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-22-2.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-22-3.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-22-4.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-22-5.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-22-6.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-22-7.png" style="display: block; margin: auto;" />
+
+> ## score changes with usage increase for predifined drug groups
+
+<img src="README_files/figure-gfm/unnamed-chunk-23-1.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-23-2.png" style="display: block; margin: auto;" />
+
+> score changes with age
+
+``` r
+for (i in score.cols) {
+  plt <- data %>%
+    ggplot(., aes(y=!!sym(i), x=Age, fill=Age)) +
+    geom_boxplot() +
+    scale_fill_brewer(palette="Dark2")
+  print(plt)
+}
+```
+
+![](README_files/figure-gfm/unnamed-chunk-24-1.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-24-2.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-24-3.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-24-4.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-24-5.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-24-6.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-24-7.png)<!-- -->
+
 ``` r
 display.brewer.all()
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-30-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-31-1.png)<!-- -->
 
 ``` r
 brewer.pal.info
