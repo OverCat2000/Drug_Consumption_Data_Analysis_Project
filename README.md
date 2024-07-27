@@ -11,14 +11,16 @@ library(cowplot)
 library(corrplot)
 library(rcompanion)
 library(corrr)
+library(FactoMineR)
+library(factoextra)
+library(caret)
 ```
 
 > ## load dataset
 
 ``` r
 data = read.csv("drug.csv")
-data <- data %>%
-  select(-c(Semer))
+
 head(data, n=3)
 ```
 
@@ -34,10 +36,10 @@ head(data, n=3)
     ## 1    CL2  CL0    CL2  CL6      CL0  CL5  CL0   CL0     CL0    CL0      CL0
     ## 2    CL2  CL2    CL0  CL6      CL4  CL6  CL3   CL0     CL4    CL0      CL2
     ## 3    CL0  CL0    CL0  CL6      CL3  CL4  CL0   CL0     CL0    CL0      CL0
-    ##   Legalh LSD Meth Mushrooms Nicotine VSA
-    ## 1    CL0 CL0  CL0       CL0      CL2 CL0
-    ## 2    CL0 CL2  CL3       CL0      CL4 CL0
-    ## 3    CL0 CL0  CL0       CL1      CL0 CL0
+    ##   Legalh LSD Meth Mushrooms Nicotine Semer VSA
+    ## 1    CL0 CL0  CL0       CL0      CL2   CL0 CL0
+    ## 2    CL0 CL2  CL3       CL0      CL4   CL0 CL0
+    ## 3    CL0 CL0  CL0       CL1      CL0   CL0 CL0
 
 > ## give factor levels to education
 
@@ -46,14 +48,14 @@ data$Education = factor(data$Education, levels=c("Doctorate Degree", "Masters De
                                 "University Degree", "Professional Certificate/ Diploma",
                                 "Some College,No Certificate Or Degree", "Left School at 18 years",
                                 "Left School at 17 years", "Left School at 16 years",
-                                "Left School Before 16 years"))
+                                "Left School Before 16 years"), ordered=T)
 ```
 
 > ## recode usage levels in drugs
 
 ``` r
 data = data %>%
-  mutate(across(c(14:31), ~ recode(., 
+  mutate(across(c(13:32), ~ recode(.,
                                 'CL0'= 0,
                                 'CL1'= 1,
                                 'CL2'= 2,
@@ -64,12 +66,37 @@ data = data %>%
                 )))
 ```
 
+    ## Warning: There was 1 warning in `mutate()`.
+    ## ℹ In argument: `across(...)`.
+    ## Caused by warning in `recode.numeric()`:
+    ## ! NAs introduced by coercion
+
+``` r
+data <- data %>%
+  mutate(Age = case_when(
+    Age %in% c("55 - 64", "65+") ~ "55+",
+    TRUE ~ Age
+  ))
+```
+
+``` r
+data <- data %>%
+  filter(Semer == 0)
+  
+trainIndex <- createDataPartition(data$Alcohol, p=0.8, times=1, list=F)
+data <- data[trainIndex, ]
+val <- data[-trainIndex, ]
+
+data <- data %>%
+  select(-all_of(c("Semer", "X")))
+```
+
 > ## group column names
 
 ``` r
-drug.cols = colnames(data[, 14:31])
-score.cols = colnames(data[, 7:13])
-feature.cols = colnames(data[, 1:6])
+drug.cols = colnames(data[, 13:30])
+score.cols = colnames(data[, 6:12])
+feature.cols = colnames(data[, 1:5])
 ```
 
 > ## create drug types
@@ -87,8 +114,8 @@ hallucinogens <- c("LSD", "Mushrooms", "Ketamine", "Cannabis", "Ecstasy")
 > ## create seperate datasets for features and labels
 
 ``` r
-labels = data[, 14:31]
-features = data[, 1:13]
+labels = data[, 13:30]
+features = data[, 1:12]
 ```
 
 > ## check the usage level (addiction) of each drug
@@ -103,7 +130,7 @@ ggplot(drug.tb, aes(x=value)) +
   theme(legend.position="bottom")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
 
 > ## create a dataframe **temp** of indivuals who actively uses dangerous drugs
 
@@ -125,7 +152,7 @@ ggplot(temp, aes(y=Education)) +
   labs(title="dangerous drug usage in education groups")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
 
 > ## plot the distribution in age levels in **temp**
 
@@ -136,13 +163,13 @@ ggplot(temp, aes(y=Age)) +
   labs(title="dagerous drugs usage in age groups")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
 
 > ## Nscore behaviour in drug groups
 
 ``` r
 df.score = labels %>%
-  bind_cols(data[, 7:13])
+  bind_cols(data[, score.cols])
 
 df.score.pivot = gather(df.score, key="drug", "usage", drug.cols)
 ```
@@ -169,7 +196,7 @@ df.score.pivot %>%
     facet_wrap(~drug)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
 
 > ## score distributions in depressant users
 
@@ -208,7 +235,7 @@ for (i in stimulants) {
     ## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
     ## generated.
 
-![](README_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-13-2.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-13-3.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-13-4.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-13-5.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-14-2.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-14-3.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-14-4.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-14-5.png)<!-- -->
 
 > ## Analysis on Cannabis
 >
@@ -225,7 +252,7 @@ data %>%
   facet_wrap(vars(!!sym(i)))
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
 
 > ## popular Ages groups in each drug
 
@@ -264,19 +291,19 @@ plt2 = data %>%
 plot_grid(plt1, plt2, ncol=2, rel_heights=c(2, 1))
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
 
 ``` r
 print(plt1)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-15-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-16-2.png)<!-- -->
 
 ``` r
 print(plt2)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-15-3.png)<!-- --> \> \##
+![](README_files/figure-gfm/unnamed-chunk-16-3.png)<!-- --> \> \##
 popular drugs in education levels
 
 ``` r
@@ -285,7 +312,7 @@ education.popular.drugs = data %>%
   filter(usage >= 4) %>%
   group_by(Education, drug) %>%
   tally() %>%
-  slice_max(order_by=n, n=7) %>%
+  slice_max(order_by=n, n=6) %>%
   ungroup() %>%
   distinct(drug) %>%
   pull()
@@ -299,7 +326,7 @@ data %>%
   scale_fill_brewer(palette="Paired")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
 
 > ## popular drugs in Countries
 
@@ -323,9 +350,12 @@ data %>%
   scale_fill_brewer(palette="Paired")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
+    ## Warning in RColorBrewer::brewer.pal(n, pal): n too large, allowed maximum for palette Paired is 12
+    ## Returning the palette you asked for with that many colors
 
-> legal constraint in countries
+![](README_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->
+
+> ## legal constraint in countries
 
 ``` r
 # Group 1: Low Perceived Risk
@@ -354,7 +384,7 @@ data %>%
   scale_fill_brewer(direction = 1)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
 
 > ## popular drugs within genders
 
@@ -378,7 +408,7 @@ data %>%
   geom_bar(position="fill")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->
 
 ``` r
 data %>%
@@ -393,7 +423,7 @@ data %>%
   scale_fill_brewer(palette="Pastel1")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-19-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-20-2.png)<!-- -->
 
 > ## corealtion among drugs
 
@@ -408,7 +438,7 @@ data %>%
   corrplot(., method = "square", type = "lower", order = 'FPC', tl.col = "black", tl.srt = 45, diag = F)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->
 
 ``` r
 data %>%
@@ -417,7 +447,7 @@ data %>%
   corrplot(., method = "square", type = "lower", order = 'FPC', tl.col = "black", tl.srt = 45, diag = F)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-20-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-21-2.png)<!-- -->
 
 ``` r
 v1 <- data %>%
@@ -436,19 +466,54 @@ rownames(mat) = colnames(v1[, -1])
 corrplot(mat, method = "square", type = "lower", order = 'FPC', tl.col = "black", tl.srt = 45, diag = F)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-20-3.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-21-3.png)<!-- -->
 
 > ## density in usgae groups in each drug for each score
 
-<img src="README_files/figure-gfm/unnamed-chunk-21-1.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-21-2.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-21-3.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-21-4.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-21-5.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-21-6.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-21-7.png" style="display: block; margin: auto;" />
+    ## Warning: Groups with fewer than two data points have been dropped.
+
+    ## Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning
+    ## -Inf
+
+<img src="README_files/figure-gfm/unnamed-chunk-22-1.png" style="display: block; margin: auto;" />
+
+    ## Warning: Groups with fewer than two data points have been dropped.
+    ## no non-missing arguments to max; returning -Inf
+
+<img src="README_files/figure-gfm/unnamed-chunk-22-2.png" style="display: block; margin: auto;" />
+
+    ## Warning: Groups with fewer than two data points have been dropped.
+    ## no non-missing arguments to max; returning -Inf
+
+<img src="README_files/figure-gfm/unnamed-chunk-22-3.png" style="display: block; margin: auto;" />
+
+    ## Warning: Groups with fewer than two data points have been dropped.
+    ## no non-missing arguments to max; returning -Inf
+
+<img src="README_files/figure-gfm/unnamed-chunk-22-4.png" style="display: block; margin: auto;" />
+
+    ## Warning: Groups with fewer than two data points have been dropped.
+    ## no non-missing arguments to max; returning -Inf
+
+<img src="README_files/figure-gfm/unnamed-chunk-22-5.png" style="display: block; margin: auto;" />
+
+    ## Warning: Groups with fewer than two data points have been dropped.
+    ## no non-missing arguments to max; returning -Inf
+
+<img src="README_files/figure-gfm/unnamed-chunk-22-6.png" style="display: block; margin: auto;" />
+
+    ## Warning: Groups with fewer than two data points have been dropped.
+    ## no non-missing arguments to max; returning -Inf
+
+<img src="README_files/figure-gfm/unnamed-chunk-22-7.png" style="display: block; margin: auto;" />
 
 > ## boxplot distribution in usage groups in each drug for each score
 
-<img src="README_files/figure-gfm/unnamed-chunk-22-1.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-22-2.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-22-3.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-22-4.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-22-5.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-22-6.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-22-7.png" style="display: block; margin: auto;" />
+<img src="README_files/figure-gfm/unnamed-chunk-23-1.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-23-2.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-23-3.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-23-4.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-23-5.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-23-6.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-23-7.png" style="display: block; margin: auto;" />
 
 > ## score changes with usage increase for predifined drug groups
 
-<img src="README_files/figure-gfm/unnamed-chunk-23-1.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-23-2.png" style="display: block; margin: auto;" />
+<img src="README_files/figure-gfm/unnamed-chunk-24-1.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-24-2.png" style="display: block; margin: auto;" />
 
 > score changes with age
 
@@ -462,13 +527,248 @@ for (i in score.cols) {
 }
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-24-1.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-24-2.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-24-3.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-24-4.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-24-5.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-24-6.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-24-7.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-25-1.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-25-2.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-25-3.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-25-4.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-25-5.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-25-6.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-25-7.png)<!-- -->
+
+``` r
+for (i in score.cols) {
+  plt <- ggplot(data, aes(y=Education, x=!!sym(i), fill=Education)) +
+    geom_boxplot()
+  print(plt)
+}
+```
+
+![](README_files/figure-gfm/unnamed-chunk-26-1.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-26-2.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-26-3.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-26-4.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-26-5.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-26-6.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-26-7.png)<!-- -->
+
+``` r
+data %>%
+  mutate_at(vars(score.cols), ~(. - mean(.))/ sd(.)) %>%
+  gather(key="score", value="val", score.cols) %>%
+  filter(Crack >= 4) %>%
+  ggplot(., aes(x=val)) +
+  geom_histogram() +
+  facet_wrap(~score)
+```
+
+    ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+
+![](README_files/figure-gfm/unnamed-chunk-27-1.png)<!-- -->
+
+``` r
+data %>%
+  mutate_at(vars(score.cols), ~ cut(.,
+                                    breaks=c(-Inf, -1, 0, 1, Inf),
+                                    labels=c("Very Low", "Low", "High", "Very High"),
+                                    )
+  ) %>%
+  gather(key="score", value="level", score.cols) %>%
+  mutate(level = factor(level, levels=c("Very Low", "Low", "High", "Very High"))) %>%
+  filter(Heroin >= 4) %>%
+  ggplot(., aes(y=level)) +
+  geom_bar() +
+  facet_wrap(~score)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-27-2.png)<!-- -->
+
+> ## MCA
+
+``` r
+dane <- data %>%
+  mutate_at(vars(score.cols), ~ cut(.,
+                                    breaks=c(-Inf, -1, 0, 1, Inf),
+                                    labels=c("Very Low", "Low", "High", "Very High"),
+                                    ordered=T)
+  ) %>%
+  select(-all_of(drug.cols))
+```
+
+``` r
+res.mca <- MCA(dane)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-29-1.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-29-2.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-29-3.png)<!-- -->
+
+``` r
+res.km = kmeans(res.mca$ind$coord, centers=2, nstart=25, iter.max=50)
+fviz_mfa_ind(res.mca, habillage=as.factor(res.km$cluster), palette=c("darkred", "indianred2"), addEllipses=T, repel=T, geom="point")
+```
+
+![](README_files/figure-gfm/unnamed-chunk-30-1.png)<!-- -->
+
+``` r
+fviz_nbclust(res.mca$ind$coord, kmeans, method = "silhouette")
+```
+
+![](README_files/figure-gfm/unnamed-chunk-30-2.png)<!-- -->
+
+``` r
+fviz_mca_biplot(res.mca, 
+               repel = TRUE, # Avoid text overlapping (slow if many point)
+               ggtheme = theme_minimal(), label = FALSE)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-32-1.png)<!-- -->
+
+``` r
+fviz_mca_var(res.mca, choice = "mca.cor", 
+            repel = TRUE, # Avoid text overlapping (slow)
+            ggtheme = theme_minimal())
+```
+
+![](README_files/figure-gfm/unnamed-chunk-33-1.png)<!-- -->
+
+``` r
+fviz_mca_var(res.mca, col.var = "cos2",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             repel = TRUE, # Avoid text overlapping
+             ggtheme = theme_minimal(),
+             select.var = list(cos2 = 0.15))
+```
+
+![](README_files/figure-gfm/unnamed-chunk-34-1.png)<!-- -->
+
+``` r
+# Contributions of rows to dimension 1
+fviz_contrib(res.mca, choice = "var", axes = 1, top = 15)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-35-1.png)<!-- -->
+
+``` r
+# Contributions of rows to dimension 2
+fviz_contrib(res.mca, choice = "var", axes = 2, top = 15)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-35-2.png)<!-- -->
+
+``` r
+fviz_contrib(res.mca, choice = "var", axes = 1:2, top = 15)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-35-3.png)<!-- -->
+
+``` r
+fviz_mca_ind(res.mca, col.ind = "cos2", 
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             ggtheme = theme_minimal(),
+             labels=F)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-36-1.png)<!-- -->
+
+``` r
+for (i in colnames(dane)) {
+  plt <- dane %>%
+    mutate(cluster = res.km$cluster) %>%
+    ggplot(aes(x=cluster, fill=!!sym(i))) +
+    geom_bar(position="fill")
+  print(plt)
+}
+```
+
+![](README_files/figure-gfm/unnamed-chunk-37-1.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-37-2.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-37-3.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-37-4.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-37-5.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-37-6.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-37-7.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-37-8.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-37-9.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-37-10.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-37-11.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-37-12.png)<!-- -->
+
+> ## FAMD
+
+``` r
+cols = c("Country", "Ethnicity")
+
+for (col in cols) {
+  features[[col]] = recode_factor(features[[col]], "Other" = paste0(col, "other"))
+}
+
+res.famd = FAMD(features)
+```
+
+    ## Warning: ggrepel: 1476 unlabeled data points (too many overlaps). Consider
+    ## increasing max.overlaps
+
+    ## Warning: ggrepel: 23 unlabeled data points (too many overlaps). Consider
+    ## increasing max.overlaps
+
+![](README_files/figure-gfm/unnamed-chunk-42-1.png)<!-- -->
+
+    ## Warning: ggrepel: 1476 unlabeled data points (too many overlaps). Consider
+    ## increasing max.overlaps
+
+![](README_files/figure-gfm/unnamed-chunk-42-2.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-42-3.png)<!-- -->
+
+    ## Warning: ggrepel: 2 unlabeled data points (too many overlaps). Consider
+    ## increasing max.overlaps
+
+![](README_files/figure-gfm/unnamed-chunk-42-4.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-42-5.png)<!-- -->
+
+``` r
+fviz_famd_var(res.famd, "quanti.var", repel=T, col.var="contrib")
+```
+
+![](README_files/figure-gfm/unnamed-chunk-43-1.png)<!-- -->
+
+``` r
+fviz_famd_var(res.famd, "quali.var", repel=T, col.var="contrib")
+```
+
+![](README_files/figure-gfm/unnamed-chunk-44-1.png)<!-- -->
+
+``` r
+fviz_famd_var(res.famd, "var", repel=T, col.var="coord")
+```
+
+![](README_files/figure-gfm/unnamed-chunk-45-1.png)<!-- -->
+
+``` r
+fviz_screeplot(res.famd)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-46-1.png)<!-- -->
+
+``` r
+as.data.frame(res.famd$eig)
+```
+
+    ##        eigenvalue percentage of variance cumulative percentage of variance
+    ## comp 1   3.145196               9.828737                          9.828737
+    ## comp 2   1.908121               5.962877                         15.791614
+    ## comp 3   1.385673               4.330229                         20.121843
+    ## comp 4   1.270308               3.969712                         24.091555
+    ## comp 5   1.217519               3.804746                         27.896301
+
+``` r
+fviz_mfa_ind(res.famd, geom="point")
+```
+
+![](README_files/figure-gfm/unnamed-chunk-48-1.png)<!-- -->
+
+``` r
+res.km = kmeans(res.famd$ind$coord, centers=2, nstart=25, iter.max=50)
+fviz_mfa_ind(res.famd, habillage=as.factor(res.km$cluster), palette=c("darkred", "indianred2"), addEllipses=T, repel=T, geom="point")
+```
+
+![](README_files/figure-gfm/unnamed-chunk-48-2.png)<!-- -->
+
+``` r
+fviz_nbclust(res.famd$ind$coord, kmeans, method = "silhouette")
+```
+
+![](README_files/figure-gfm/unnamed-chunk-48-3.png)<!-- -->
+
+``` r
+for (i in feature.cols) {
+  plt <- features %>%
+    mutate(cluster = res.km$cluster) %>%
+    ggplot(aes(x=cluster, fill=!!sym(i))) +
+    geom_bar(position="fill")
+  print(plt)
+}
+```
+
+![](README_files/figure-gfm/unnamed-chunk-49-1.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-49-2.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-49-3.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-49-4.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-49-5.png)<!-- -->
 
 ``` r
 display.brewer.all()
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-31-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-54-1.png)<!-- -->
 
 ``` r
 brewer.pal.info

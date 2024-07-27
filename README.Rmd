@@ -543,7 +543,6 @@ dane <- data %>%
   ) %>%
   select(-all_of(drug.cols))
 
-dane
   
 ```
 
@@ -559,7 +558,7 @@ res.mca <- MCA(dane)
 res.km = kmeans(res.mca$ind$coord, centers=2, nstart=25, iter.max=50)
 fviz_mfa_ind(res.mca, habillage=as.factor(res.km$cluster), palette=c("darkred", "indianred2"), addEllipses=T, repel=T, geom="point")
 
-fviz_nbclust(res.famd$ind$coord, kmeans, method = "silhouette")
+fviz_nbclust(res.mca$ind$coord, kmeans, method = "silhouette")
 
 
 ```
@@ -702,7 +701,7 @@ fviz_nbclust(res.famd$ind$coord, kmeans, method = "silhouette")
 
 
 ```{r}
-for (i in cat.cols) {
+for (i in feature.cols) {
   plt <- features %>%
     mutate(cluster = res.km$cluster) %>%
     ggplot(aes(x=cluster, fill=!!sym(i))) +
