@@ -13,6 +13,9 @@ library(cowplot)
 library(corrplot)
 library(rcompanion)
 library(corrr)
+library(FactoMineR)
+library(factoextra)
+library(caret)
 
 ```
 
@@ -20,8 +23,7 @@ library(corrr)
 
 ```{r}
 data = read.csv("drug.csv")
-data <- data %>%
-  select(-c(Semer))
+
 head(data, n=3)
 ```
 
@@ -32,14 +34,14 @@ data$Education = factor(data$Education, levels=c("Doctorate Degree", "Masters De
                                 "University Degree", "Professional Certificate/ Diploma",
                                 "Some College,No Certificate Or Degree", "Left School at 18 years",
                                 "Left School at 17 years", "Left School at 16 years",
-                                "Left School Before 16 years"))
+                                "Left School Before 16 years"), ordered=T)
 ```
 
 > ## recode usage levels in drugs
 
 ```{r}
 data = data %>%
-  mutate(across(c(14:31), ~ recode(., 
+  mutate(across(c(13:32), ~ recode(.,
                                 'CL0'= 0,
                                 'CL1'= 1,
                                 'CL2'= 2,
@@ -49,14 +51,36 @@ data = data %>%
                                 'CL6'= 6,
                 )))
 
+data <- data %>%
+  mutate(Age = case_when(
+    Age %in% c("55 - 64", "65+") ~ "55+",
+    TRUE ~ Age
+  ))
+
 ```
+
+
+```{r}
+data <- data %>%
+  filter(Semer == 0)
+  
+trainIndex <- createDataPartition(data$Alcohol, p=0.8, times=1, list=F)
+data <- data[trainIndex, ]
+val <- data[-trainIndex, ]
+
+data <- data %>%
+  select(-all_of(c("Semer", "X")))
+  
+```
+
+
 
 > ## group column names
 
 ```{r}
-drug.cols = colnames(data[, 14:31])
-score.cols = colnames(data[, 7:13])
-feature.cols = colnames(data[, 1:6])
+drug.cols = colnames(data[, 13:30])
+score.cols = colnames(data[, 6:12])
+feature.cols = colnames(data[, 1:5])
 
 ```
 
@@ -76,8 +100,9 @@ hallucinogens <- c("LSD", "Mushrooms", "Ketamine", "Cannabis", "Ecstasy")
 > ## create seperate datasets for features and labels
 
 ```{r}
-labels = data[, 14:31]
-features = data[, 1:13]
+labels = data[, 13:30]
+features = data[, 1:12]
+
 ```
 
 > ## check the usage level (addiction) of each drug
@@ -129,7 +154,7 @@ ggplot(temp, aes(y=Age)) +
 
 ```{r}
 df.score = labels %>%
-  bind_cols(data[, 7:13])
+  bind_cols(data[, score.cols])
 
 df.score.pivot = gather(df.score, key="drug", "usage", drug.cols)
 
@@ -229,7 +254,7 @@ education.popular.drugs = data %>%
   filter(usage >= 4) %>%
   group_by(Education, drug) %>%
   tally() %>%
-  slice_max(order_by=n, n=7) %>%
+  slice_max(order_by=n, n=6) %>%
   ungroup() %>%
   distinct(drug) %>%
   pull()
@@ -269,7 +294,7 @@ data %>%
 
 ```
 
-> legal constraint in countries
+> ## legal constraint in countries
 
 ```{r}
 # Group 1: Low Perceived Risk
@@ -465,9 +490,77 @@ for (i in score.cols) {
 }
 
 ```
+```{r}
+for (i in score.cols) {
+  plt <- ggplot(data, aes(y=Education, x=!!sym(i), fill=Education)) +
+    geom_boxplot()
+  print(plt)
+}
+
+
+
+
+```
 
 
 ```{r}
+
+data %>%
+  mutate_at(vars(score.cols), ~(. - mean(.))/ sd(.)) %>%
+  gather(key="score", value="val", score.cols) %>%
+  filter(Crack >= 4) %>%
+  ggplot(., aes(x=val)) +
+  geom_histogram() +
+  facet_wrap(~score)
+
+data %>%
+  mutate_at(vars(score.cols), ~ cut(.,
+                                    breaks=c(-Inf, -1, 0, 1, Inf),
+                                    labels=c("Very Low", "Low", "High", "Very High"),
+                                    )
+  ) %>%
+  gather(key="score", value="level", score.cols) %>%
+  mutate(level = factor(level, levels=c("Very Low", "Low", "High", "Very High"))) %>%
+  filter(Heroin >= 4) %>%
+  ggplot(., aes(y=level)) +
+  geom_bar() +
+  facet_wrap(~score)
+
+
+
+```
+
+
+> ## MCA
+
+```{r}
+
+dane <- data %>%
+  mutate_at(vars(score.cols), ~ cut(.,
+                                    breaks=c(-Inf, -1, 0, 1, Inf),
+                                    labels=c("Very Low", "Low", "High", "Very High"),
+                                    ordered=T)
+  ) %>%
+  select(-all_of(drug.cols))
+
+dane
+  
+```
+
+
+```{r}
+res.mca <- MCA(dane)
+
+```
+
+
+```{r}
+
+res.km = kmeans(res.mca$ind$coord, centers=2, nstart=25, iter.max=50)
+fviz_mfa_ind(res.mca, habillage=as.factor(res.km$cluster), palette=c("darkred", "indianred2"), addEllipses=T, repel=T, geom="point")
+
+fviz_nbclust(res.famd$ind$coord, kmeans, method = "silhouette")
+
 
 ```
 
@@ -477,6 +570,152 @@ for (i in score.cols) {
 
 
 ```{r}
+fviz_mca_biplot(res.mca, 
+               repel = TRUE, # Avoid text overlapping (slow if many point)
+               ggtheme = theme_minimal(), label = FALSE)
+
+```
+
+```{r}
+fviz_mca_var(res.mca, choice = "mca.cor", 
+            repel = TRUE, # Avoid text overlapping (slow)
+            ggtheme = theme_minimal())
+
+```
+
+
+```{r}
+fviz_mca_var(res.mca, col.var = "cos2",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             repel = TRUE, # Avoid text overlapping
+             ggtheme = theme_minimal(),
+             select.var = list(cos2 = 0.15))
+
+```
+
+
+```{r}
+# Contributions of rows to dimension 1
+fviz_contrib(res.mca, choice = "var", axes = 1, top = 15)
+
+# Contributions of rows to dimension 2
+fviz_contrib(res.mca, choice = "var", axes = 2, top = 15)
+
+fviz_contrib(res.mca, choice = "var", axes = 1:2, top = 15)
+
+```
+
+
+```{r}
+fviz_mca_ind(res.mca, col.ind = "cos2", 
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             ggtheme = theme_minimal(),
+             labels=F)
+
+```
+```{r}
+for (i in colnames(dane)) {
+  plt <- dane %>%
+    mutate(cluster = res.km$cluster) %>%
+    ggplot(aes(x=cluster, fill=!!sym(i))) +
+    geom_bar(position="fill")
+  print(plt)
+}
+
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+> ## FAMD
+
+```{r}
+
+cols = c("Country", "Ethnicity")
+
+for (col in cols) {
+  features[[col]] = recode_factor(features[[col]], "Other" = paste0(col, "other"))
+}
+
+res.famd = FAMD(features)
+  
+
+```
+
+
+```{r}
+
+fviz_famd_var(res.famd, "quanti.var", repel=T, col.var="contrib")
+
+```
+
+
+```{r}
+
+fviz_famd_var(res.famd, "quali.var", repel=T, col.var="contrib")
+
+```
+
+
+```{r}
+
+fviz_famd_var(res.famd, "var", repel=T, col.var="coord")
+
+```
+
+
+```{r}
+fviz_screeplot(res.famd)
+```
+
+
+```{r}
+as.data.frame(res.famd$eig)
+
+```
+
+
+```{r}
+fviz_mfa_ind(res.famd, geom="point")
+
+res.km = kmeans(res.famd$ind$coord, centers=2, nstart=25, iter.max=50)
+fviz_mfa_ind(res.famd, habillage=as.factor(res.km$cluster), palette=c("darkred", "indianred2"), addEllipses=T, repel=T, geom="point")
+
+fviz_nbclust(res.famd$ind$coord, kmeans, method = "silhouette")
+
+
+```
+
+
+```{r}
+for (i in cat.cols) {
+  plt <- features %>%
+    mutate(cluster = res.km$cluster) %>%
+    ggplot(aes(x=cluster, fill=!!sym(i))) +
+    geom_bar(position="fill")
+  print(plt)
+}
+
+
+```
+
+
+```{r}
+
 ```
 
 
