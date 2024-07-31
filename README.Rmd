@@ -74,6 +74,12 @@ data <- data %>%
 ```
 
 
+```{r}
+
+```
+
+
+
 
 > ## group column names
 
@@ -102,6 +108,12 @@ hallucinogens <- c("LSD", "Mushrooms", "Ketamine", "Cannabis", "Ecstasy")
 ```{r}
 labels = data[, 13:30]
 features = data[, 1:12]
+
+df <- data %>%
+  mutate_at(vars(score.cols), ~ cut(.,
+                                    breaks=c(-Inf, -1, 0, 1, Inf),
+                                    labels=c("Very Low", "Low", "High", "Very High"),
+                                    ))
 
 ```
 
@@ -192,7 +204,7 @@ for (i in stimulants) {
 > #### age group distribution in each usage group
 
 ```{r}
-i = c("Cannabis")
+i = c("Nicotine")
 data %>%
   group_by(!!sym(i), Age) %>%
   tally() %>%
@@ -200,7 +212,139 @@ data %>%
   geom_bar(stat="identity") +
   scale_fill_ft() +
   facet_wrap(vars(!!sym(i)))
+
+data %>%
+  mutate(group = ifelse(!!sym(i) >= 4, "active", "inactive"))%>%
+  ggplot(., aes(x=Impulsive, y=group, fill=group)) +
+    geom_joy(scale=1, alpha=0.7, rel_min_height=0.02)
+
+data %>%
+  mutate(group = ifelse(!!sym(i) >= 4, "active", "inactive"))%>%
+  ggplot(., aes(x=SS, y=group, fill=group)) +
+    geom_joy(scale=1, alpha=0.7, rel_min_height=0.02)
+
+data %>%
+  mutate(group = ifelse(!!sym(i) >= 4, "active", "inactive")) %>%
+  ggplot(., aes(y=Education, fill=group)) +
+  geom_bar(position="fill")
+
+data %>%
+  mutate(group = ifelse(!!sym(i) >= 4, "active", "inactive")) %>%
+  ggplot(., aes(y=Age, fill=group)) +
+  geom_bar(position="fill")
+
+data %>%
+  mutate(group = ifelse(!!sym(i) >= 4, "active", "inactive")) %>%
+  mutate(Country=fct_reorder(.f = Country, 
+                          .x = group,
+                          .fun = function(.x) mean(.x == "active"),
+                          .desc = TRUE)) %>%
+  ggplot(., aes(y=Country, fill=group)) +
+  geom_bar(position="fill")
   
+```
+
+> ## popular drugs within high Escore individuals
+
+```{r}
+i = "Escore"
+
+drug.cols.new = drug.cols[!drug.cols %in% c("Caff", "Choc", "Alcohol", "Cannabis", "Nicotine")]
+
+for (i in score.cols) {
+  score.popular.drugs <- df %>%
+    gather(., key="drug", value="usage", drug.cols.new) %>%
+    filter(usage >= 4) %>%
+    filter(!!sym(i) %in% c("High", "Very High")) %>%
+    group_by(!!sym(i), drug) %>%
+    tally() %>%
+    group_by(!!sym(i)) %>%
+    slice_max(order_by=n, n=7) %>%
+    ungroup() %>%
+    distinct(drug)
+  
+  plt <- df %>%
+    gather(., key="drug", value="usage", drug.cols.new) %>%
+    filter(usage >= 4) %>%
+    mutate(drug = if_else(drug %in% c(score.popular.drugs)$drug, drug, "other")) %>%
+    ggplot(., aes(y=!!sym(i), fill=drug)) +
+    geom_bar(position="fill") +
+    scale_fill_brewer(palette="Paired") +
+    theme(legend.position="bottom")
+  
+  print(plt)
+}
+  
+
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+
+```{r}
+data %>%
+  mutate(Education = as.factor(as.numeric(factor(Education)))) %>%
+  ggplot(., aes(y=Education, x=Escore, fill=Education)) +
+  geom_joy(scale=1, alpha=0.7, rel_min_height=0.02) +
+  scale_fill_manual(labels=levels(data$Education), values=brewer.pal(9, "PuRd"))
+
+```
+
+
+```{r}
+# data %>%
+#   filter(Crack >= 4) %>%
+#   select(all_of(score.cols)) %>%
+#   cor(., use = "complete.obs") %>%
+#   corrplot(., method = "square", type = "lower", order = 'alphabet', tl.col = "black", tl.srt = 45, diag = F)
+
+data %>%
+  select(all_of(score.cols)) %>%
+  cor(., use = "complete.obs") %>%
+  corrplot(., method = "square", type = "lower", order = 'alphabet', tl.col = "black", tl.srt = 45, diag = F)
+
+```
+
+
+
+```{r}
+ethnicity.popular.drugs = data %>%
+  mutate(Ethnicity = if_else(Ethnicity == "White", "White", "Other")) %>%
+  gather(., key="drug", value="usage", drug.cols) %>%
+  filter(usage >= 4) %>%
+  group_by(Ethnicity, drug) %>%
+  tally() %>%
+  group_by(Ethnicity) %>%
+  slice_max(order_by=n, n=5) %>%
+  ungroup() %>%
+  distinct(drug)
+
+
+data %>%
+  mutate(Ethnicity = if_else(Ethnicity == "White", "White", "Other")) %>%
+  gather(key="drug", value="usage", drug.cols) %>% 
+  filter(usage >=4) %>%
+  mutate(drug = if_else(drug %in% c(ethnicity.popular.drugs)$drug, drug, "other")) %>%
+  ggplot(., aes(x=Ethnicity, fill=drug)) +
+  geom_bar(position="fill") +
+  scale_fill_brewer(palette="Spectral") +
+  theme(legend.position="bottom")
+
   
 ```
 
@@ -398,7 +542,7 @@ corrplot(mat, method = "square", type = "lower", order = 'FPC', tl.col = "black"
 
 > ## density in usgae groups in each drug for each score
 
-```{r  fig.align="center", echo = FALSE,fig.width = 14}
+```{r  fig.align="center", echo = FALSE,fig.width = 7}
 
 # i = "Alcohol"
 # 
@@ -410,14 +554,26 @@ corrplot(mat, method = "square", type = "lower", order = 'FPC', tl.col = "black"
 #   print(plt)
 # }
 
-for (i in score.cols) {
+# for (i in score.cols) {
+#   plt <- data %>%
+#     gather(key="drug", value="usage", drug.cols) %>%
+#     mutate(usage = as.factor(usage)) %>%
+#     ggplot(., aes(x=!!sym(i), group=usage, fill=usage)) +
+#     geom_density(adjust=1.5, alpha=0.5) +
+#     scale_fill_brewer(palette="Blues") +
+#     facet_wrap(~drug)
+#   print(plt)
+# }
+
+
+for (i in drug.cols) {
   plt <- data %>%
-    gather(key="drug", value="usage", drug.cols) %>%
-    mutate(usage = as.factor(usage)) %>%
-    ggplot(., aes(x=!!sym(i), group=usage, fill=usage)) +
-    geom_density(adjust=1.5, alpha=0.5) +
-    scale_fill_brewer(palette="Blues") +
-    facet_wrap(~drug)
+    gather(key="score", value="val", score.cols) %>%
+    mutate(group = ifelse(!!sym(i) >= 4, "active", "inactive"))%>%
+    ggplot(., aes(x=val, y=group, fill=group)) +
+    geom_joy(scale=1, alpha=0.7, rel_min_height=0.02) +
+    labs(title=paste("denstiy plot for", i)) +
+    facet_wrap(~score)
   print(plt)
 }
 
@@ -729,7 +885,7 @@ for (i in feature.cols) {
 ```{r}
 ```
 
-```{r}
+```{r fig.align="center", echo = FALSE,fig.width = 10, fig.height=7}
 display.brewer.all()
 brewer.pal.info
 ```

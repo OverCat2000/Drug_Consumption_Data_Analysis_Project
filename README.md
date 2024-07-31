@@ -116,7 +116,26 @@ hallucinogens <- c("LSD", "Mushrooms", "Ketamine", "Cannabis", "Ecstasy")
 ``` r
 labels = data[, 13:30]
 features = data[, 1:12]
+
+df <- data %>%
+  mutate_at(vars(score.cols), ~ cut(.,
+                                    breaks=c(-Inf, -1, 0, 1, Inf),
+                                    labels=c("Very Low", "Low", "High", "Very High"),
+                                    ))
 ```
+
+    ## Warning: Using an external vector in selections was deprecated in tidyselect 1.1.0.
+    ## ℹ Please use `all_of()` or `any_of()` instead.
+    ##   # Was:
+    ##   data %>% select(score.cols)
+    ## 
+    ##   # Now:
+    ##   data %>% select(all_of(score.cols))
+    ## 
+    ## See <https://tidyselect.r-lib.org/reference/faq-external-vector.html>.
+    ## This warning is displayed once every 8 hours.
+    ## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
+    ## generated.
 
 > ## check the usage level (addiction) of each drug
 
@@ -130,7 +149,7 @@ ggplot(drug.tb, aes(x=value)) +
   theme(legend.position="bottom")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
 
 > ## create a dataframe **temp** of indivuals who actively uses dangerous drugs
 
@@ -152,7 +171,7 @@ ggplot(temp, aes(y=Education)) +
   labs(title="dangerous drug usage in education groups")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
 
 > ## plot the distribution in age levels in **temp**
 
@@ -163,7 +182,7 @@ ggplot(temp, aes(y=Age)) +
   labs(title="dagerous drugs usage in age groups")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
 
 > ## Nscore behaviour in drug groups
 
@@ -196,7 +215,7 @@ df.score.pivot %>%
     facet_wrap(~drug)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
 
 > ## score distributions in depressant users
 
@@ -216,33 +235,20 @@ for (i in stimulants) {
 }
 ```
 
-    ## Warning: Using an external vector in selections was deprecated in tidyselect 1.1.0.
-    ## ℹ Please use `all_of()` or `any_of()` instead.
-    ##   # Was:
-    ##   data %>% select(score.cols)
-    ## 
-    ##   # Now:
-    ##   data %>% select(all_of(score.cols))
-    ## 
-    ## See <https://tidyselect.r-lib.org/reference/faq-external-vector.html>.
-    ## This warning is displayed once every 8 hours.
-    ## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
-    ## generated.
-
     ## Warning: The dot-dot notation (`..density..`) was deprecated in ggplot2 3.4.0.
     ## ℹ Please use `after_stat(density)` instead.
     ## This warning is displayed once every 8 hours.
     ## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
     ## generated.
 
-![](README_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-14-2.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-14-3.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-14-4.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-14-5.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-15-2.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-15-3.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-15-4.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-15-5.png)<!-- -->
 
 > ## Analysis on Cannabis
 >
 > #### age group distribution in each usage group
 
 ``` r
-i = c("Cannabis")
+i = c("Nicotine")
 data %>%
   group_by(!!sym(i), Age) %>%
   tally() %>%
@@ -252,7 +258,160 @@ data %>%
   facet_wrap(vars(!!sym(i)))
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
+
+``` r
+data %>%
+  mutate(group = ifelse(!!sym(i) >= 4, "active", "inactive"))%>%
+  ggplot(., aes(x=Impulsive, y=group, fill=group)) +
+    geom_joy(scale=1, alpha=0.7, rel_min_height=0.02)
+```
+
+    ## Picking joint bandwidth of 0.206
+
+![](README_files/figure-gfm/unnamed-chunk-16-2.png)<!-- -->
+
+``` r
+data %>%
+  mutate(group = ifelse(!!sym(i) >= 4, "active", "inactive"))%>%
+  ggplot(., aes(x=SS, y=group, fill=group)) +
+    geom_joy(scale=1, alpha=0.7, rel_min_height=0.02)
+```
+
+    ## Picking joint bandwidth of 0.197
+
+![](README_files/figure-gfm/unnamed-chunk-16-3.png)<!-- -->
+
+``` r
+data %>%
+  mutate(group = ifelse(!!sym(i) >= 4, "active", "inactive")) %>%
+  ggplot(., aes(y=Education, fill=group)) +
+  geom_bar(position="fill")
+```
+
+![](README_files/figure-gfm/unnamed-chunk-16-4.png)<!-- -->
+
+``` r
+data %>%
+  mutate(group = ifelse(!!sym(i) >= 4, "active", "inactive")) %>%
+  ggplot(., aes(y=Age, fill=group)) +
+  geom_bar(position="fill")
+```
+
+![](README_files/figure-gfm/unnamed-chunk-16-5.png)<!-- -->
+
+``` r
+data %>%
+  mutate(group = ifelse(!!sym(i) >= 4, "active", "inactive")) %>%
+  mutate(Country=fct_reorder(.f = Country, 
+                          .x = group,
+                          .fun = function(.x) mean(.x == "active"),
+                          .desc = TRUE)) %>%
+  ggplot(., aes(y=Country, fill=group)) +
+  geom_bar(position="fill")
+```
+
+![](README_files/figure-gfm/unnamed-chunk-16-6.png)<!-- -->
+
+> ## popular drugs within high Escore individuals
+
+``` r
+i = "Escore"
+
+drug.cols.new = drug.cols[!drug.cols %in% c("Caff", "Choc", "Alcohol", "Cannabis", "Nicotine")]
+
+for (i in score.cols) {
+  score.popular.drugs <- df %>%
+    gather(., key="drug", value="usage", drug.cols.new) %>%
+    filter(usage >= 4) %>%
+    filter(!!sym(i) %in% c("High", "Very High")) %>%
+    group_by(!!sym(i), drug) %>%
+    tally() %>%
+    group_by(!!sym(i)) %>%
+    slice_max(order_by=n, n=7) %>%
+    ungroup() %>%
+    distinct(drug)
+  
+  plt <- df %>%
+    gather(., key="drug", value="usage", drug.cols.new) %>%
+    filter(usage >= 4) %>%
+    mutate(drug = if_else(drug %in% c(score.popular.drugs)$drug, drug, "other")) %>%
+    ggplot(., aes(y=!!sym(i), fill=drug)) +
+    geom_bar(position="fill") +
+    scale_fill_brewer(palette="Paired") +
+    theme(legend.position="bottom")
+  
+  print(plt)
+}
+```
+
+    ## Warning: Using an external vector in selections was deprecated in tidyselect 1.1.0.
+    ## ℹ Please use `all_of()` or `any_of()` instead.
+    ##   # Was:
+    ##   data %>% select(drug.cols.new)
+    ## 
+    ##   # Now:
+    ##   data %>% select(all_of(drug.cols.new))
+    ## 
+    ## See <https://tidyselect.r-lib.org/reference/faq-external-vector.html>.
+    ## This warning is displayed once every 8 hours.
+    ## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
+    ## generated.
+
+![](README_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-17-2.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-17-3.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-17-4.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-17-5.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-17-6.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-17-7.png)<!-- -->
+
+``` r
+data %>%
+  mutate(Education = as.factor(as.numeric(factor(Education)))) %>%
+  ggplot(., aes(y=Education, x=Escore, fill=Education)) +
+  geom_joy(scale=1, alpha=0.7, rel_min_height=0.02) +
+  scale_fill_manual(labels=levels(data$Education), values=brewer.pal(9, "PuRd"))
+```
+
+    ## Picking joint bandwidth of 0.315
+
+![](README_files/figure-gfm/unnamed-chunk-22-1.png)<!-- -->
+
+``` r
+# data %>%
+#   filter(Crack >= 4) %>%
+#   select(all_of(score.cols)) %>%
+#   cor(., use = "complete.obs") %>%
+#   corrplot(., method = "square", type = "lower", order = 'alphabet', tl.col = "black", tl.srt = 45, diag = F)
+
+data %>%
+  select(all_of(score.cols)) %>%
+  cor(., use = "complete.obs") %>%
+  corrplot(., method = "square", type = "lower", order = 'alphabet', tl.col = "black", tl.srt = 45, diag = F)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-23-1.png)<!-- -->
+
+``` r
+ethnicity.popular.drugs = data %>%
+  mutate(Ethnicity = if_else(Ethnicity == "White", "White", "Other")) %>%
+  gather(., key="drug", value="usage", drug.cols) %>%
+  filter(usage >= 4) %>%
+  group_by(Ethnicity, drug) %>%
+  tally() %>%
+  group_by(Ethnicity) %>%
+  slice_max(order_by=n, n=5) %>%
+  ungroup() %>%
+  distinct(drug)
+
+
+data %>%
+  mutate(Ethnicity = if_else(Ethnicity == "White", "White", "Other")) %>%
+  gather(key="drug", value="usage", drug.cols) %>% 
+  filter(usage >=4) %>%
+  mutate(drug = if_else(drug %in% c(ethnicity.popular.drugs)$drug, drug, "other")) %>%
+  ggplot(., aes(x=Ethnicity, fill=drug)) +
+  geom_bar(position="fill") +
+  scale_fill_brewer(palette="Spectral") +
+  theme(legend.position="bottom")
+```
+
+![](README_files/figure-gfm/unnamed-chunk-24-1.png)<!-- -->
 
 > ## popular Ages groups in each drug
 
@@ -291,19 +450,19 @@ plt2 = data %>%
 plot_grid(plt1, plt2, ncol=2, rel_heights=c(2, 1))
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-25-1.png)<!-- -->
 
 ``` r
 print(plt1)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-16-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-25-2.png)<!-- -->
 
 ``` r
 print(plt2)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-16-3.png)<!-- --> \> \##
+![](README_files/figure-gfm/unnamed-chunk-25-3.png)<!-- --> \> \##
 popular drugs in education levels
 
 ``` r
@@ -326,7 +485,7 @@ data %>%
   scale_fill_brewer(palette="Paired")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-26-1.png)<!-- -->
 
 > ## popular drugs in Countries
 
@@ -350,10 +509,7 @@ data %>%
   scale_fill_brewer(palette="Paired")
 ```
 
-    ## Warning in RColorBrewer::brewer.pal(n, pal): n too large, allowed maximum for palette Paired is 12
-    ## Returning the palette you asked for with that many colors
-
-![](README_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-27-1.png)<!-- -->
 
 > ## legal constraint in countries
 
@@ -384,7 +540,7 @@ data %>%
   scale_fill_brewer(direction = 1)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-28-1.png)<!-- -->
 
 > ## popular drugs within genders
 
@@ -408,7 +564,7 @@ data %>%
   geom_bar(position="fill")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-29-1.png)<!-- -->
 
 ``` r
 data %>%
@@ -423,7 +579,7 @@ data %>%
   scale_fill_brewer(palette="Pastel1")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-20-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-29-2.png)<!-- -->
 
 > ## corealtion among drugs
 
@@ -438,7 +594,7 @@ data %>%
   corrplot(., method = "square", type = "lower", order = 'FPC', tl.col = "black", tl.srt = 45, diag = F)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-30-1.png)<!-- -->
 
 ``` r
 data %>%
@@ -447,7 +603,7 @@ data %>%
   corrplot(., method = "square", type = "lower", order = 'FPC', tl.col = "black", tl.srt = 45, diag = F)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-21-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-30-2.png)<!-- -->
 
 ``` r
 v1 <- data %>%
@@ -466,54 +622,305 @@ rownames(mat) = colnames(v1[, -1])
 corrplot(mat, method = "square", type = "lower", order = 'FPC', tl.col = "black", tl.srt = 45, diag = F)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-21-3.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-30-3.png)<!-- -->
 
 > ## density in usgae groups in each drug for each score
 
-    ## Warning: Groups with fewer than two data points have been dropped.
+    ## Picking joint bandwidth of 0.239
 
-    ## Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning
-    ## -Inf
+    ## Picking joint bandwidth of 0.243
 
-<img src="README_files/figure-gfm/unnamed-chunk-22-1.png" style="display: block; margin: auto;" />
+    ## Picking joint bandwidth of 0.236
 
-    ## Warning: Groups with fewer than two data points have been dropped.
-    ## no non-missing arguments to max; returning -Inf
+    ## Picking joint bandwidth of 0.237
 
-<img src="README_files/figure-gfm/unnamed-chunk-22-2.png" style="display: block; margin: auto;" />
+    ## Picking joint bandwidth of 0.25
 
-    ## Warning: Groups with fewer than two data points have been dropped.
-    ## no non-missing arguments to max; returning -Inf
+    ## Picking joint bandwidth of 0.236
 
-<img src="README_files/figure-gfm/unnamed-chunk-22-3.png" style="display: block; margin: auto;" />
+    ## Picking joint bandwidth of 0.241
 
-    ## Warning: Groups with fewer than two data points have been dropped.
-    ## no non-missing arguments to max; returning -Inf
+<img src="README_files/figure-gfm/unnamed-chunk-31-1.png" style="display: block; margin: auto;" />
 
-<img src="README_files/figure-gfm/unnamed-chunk-22-4.png" style="display: block; margin: auto;" />
+    ## Picking joint bandwidth of 0.262
 
-    ## Warning: Groups with fewer than two data points have been dropped.
-    ## no non-missing arguments to max; returning -Inf
+    ## Picking joint bandwidth of 0.237
 
-<img src="README_files/figure-gfm/unnamed-chunk-22-5.png" style="display: block; margin: auto;" />
+    ## Picking joint bandwidth of 0.265
 
-    ## Warning: Groups with fewer than two data points have been dropped.
-    ## no non-missing arguments to max; returning -Inf
+    ## Picking joint bandwidth of 0.216
 
-<img src="README_files/figure-gfm/unnamed-chunk-22-6.png" style="display: block; margin: auto;" />
+    ## Picking joint bandwidth of 0.253
 
-    ## Warning: Groups with fewer than two data points have been dropped.
-    ## no non-missing arguments to max; returning -Inf
+    ## Picking joint bandwidth of 0.245
 
-<img src="README_files/figure-gfm/unnamed-chunk-22-7.png" style="display: block; margin: auto;" />
+    ## Picking joint bandwidth of 0.234
+
+<img src="README_files/figure-gfm/unnamed-chunk-31-2.png" style="display: block; margin: auto;" />
+
+    ## Picking joint bandwidth of 0.325
+
+    ## Picking joint bandwidth of 0.275
+
+    ## Picking joint bandwidth of 0.316
+
+    ## Picking joint bandwidth of 0.265
+
+    ## Picking joint bandwidth of 0.328
+
+    ## Picking joint bandwidth of 0.341
+
+    ## Picking joint bandwidth of 0.29
+
+<img src="README_files/figure-gfm/unnamed-chunk-31-3.png" style="display: block; margin: auto;" />
+
+    ## Picking joint bandwidth of 0.242
+
+    ## Picking joint bandwidth of 0.248
+
+    ## Picking joint bandwidth of 0.261
+
+    ## Picking joint bandwidth of 0.224
+
+    ## Picking joint bandwidth of 0.242
+
+    ## Picking joint bandwidth of 0.241
+
+    ## Picking joint bandwidth of 0.23
+
+<img src="README_files/figure-gfm/unnamed-chunk-31-4.png" style="display: block; margin: auto;" />
+
+    ## Picking joint bandwidth of 0.263
+
+    ## Picking joint bandwidth of 0.294
+
+    ## Picking joint bandwidth of 0.258
+
+    ## Picking joint bandwidth of 0.22
+
+    ## Picking joint bandwidth of 0.287
+
+    ## Picking joint bandwidth of 0.283
+
+    ## Picking joint bandwidth of 0.263
+
+<img src="README_files/figure-gfm/unnamed-chunk-31-5.png" style="display: block; margin: auto;" />
+
+    ## Picking joint bandwidth of 0.24
+
+    ## Picking joint bandwidth of 0.208
+
+    ## Picking joint bandwidth of 0.238
+
+    ## Picking joint bandwidth of 0.209
+
+    ## Picking joint bandwidth of 0.231
+
+    ## Picking joint bandwidth of 0.221
+
+    ## Picking joint bandwidth of 0.21
+
+<img src="README_files/figure-gfm/unnamed-chunk-31-6.png" style="display: block; margin: auto;" />
+
+    ## Picking joint bandwidth of 0.294
+
+    ## Picking joint bandwidth of 0.276
+
+    ## Picking joint bandwidth of 0.268
+
+    ## Picking joint bandwidth of 0.238
+
+    ## Picking joint bandwidth of 0.311
+
+    ## Picking joint bandwidth of 0.248
+
+    ## Picking joint bandwidth of 0.287
+
+<img src="README_files/figure-gfm/unnamed-chunk-31-7.png" style="display: block; margin: auto;" />
+
+    ## Picking joint bandwidth of 0.258
+
+    ## Picking joint bandwidth of 0.262
+
+    ## Picking joint bandwidth of 0.299
+
+    ## Picking joint bandwidth of 0.238
+
+    ## Picking joint bandwidth of 0.264
+
+    ## Picking joint bandwidth of 0.267
+
+    ## Picking joint bandwidth of 0.244
+
+<img src="README_files/figure-gfm/unnamed-chunk-31-8.png" style="display: block; margin: auto;" />
+
+    ## Picking joint bandwidth of 0.316
+
+    ## Picking joint bandwidth of 0.373
+
+    ## Picking joint bandwidth of 0.372
+
+    ## Picking joint bandwidth of 0.323
+
+    ## Picking joint bandwidth of 0.302
+
+    ## Picking joint bandwidth of 0.278
+
+    ## Picking joint bandwidth of 0.28
+
+<img src="README_files/figure-gfm/unnamed-chunk-31-9.png" style="display: block; margin: auto;" />
+
+    ## Picking joint bandwidth of 0.267
+
+    ## Picking joint bandwidth of 0.259
+
+    ## Picking joint bandwidth of 0.278
+
+    ## Picking joint bandwidth of 0.229
+
+    ## Picking joint bandwidth of 0.268
+
+    ## Picking joint bandwidth of 0.262
+
+    ## Picking joint bandwidth of 0.225
+
+<img src="README_files/figure-gfm/unnamed-chunk-31-10.png" style="display: block; margin: auto;" />
+
+    ## Picking joint bandwidth of 0.289
+
+    ## Picking joint bandwidth of 0.321
+
+    ## Picking joint bandwidth of 0.363
+
+    ## Picking joint bandwidth of 0.266
+
+    ## Picking joint bandwidth of 0.261
+
+    ## Picking joint bandwidth of 0.29
+
+    ## Picking joint bandwidth of 0.229
+
+<img src="README_files/figure-gfm/unnamed-chunk-31-11.png" style="display: block; margin: auto;" />
+
+    ## Picking joint bandwidth of 0.329
+
+    ## Picking joint bandwidth of 0.276
+
+    ## Picking joint bandwidth of 0.34
+
+    ## Picking joint bandwidth of 0.248
+
+    ## Picking joint bandwidth of 0.281
+
+    ## Picking joint bandwidth of 0.286
+
+    ## Picking joint bandwidth of 0.263
+
+<img src="README_files/figure-gfm/unnamed-chunk-31-12.png" style="display: block; margin: auto;" />
+
+    ## Picking joint bandwidth of 0.26
+
+    ## Picking joint bandwidth of 0.238
+
+    ## Picking joint bandwidth of 0.283
+
+    ## Picking joint bandwidth of 0.229
+
+    ## Picking joint bandwidth of 0.258
+
+    ## Picking joint bandwidth of 0.232
+
+    ## Picking joint bandwidth of 0.217
+
+<img src="README_files/figure-gfm/unnamed-chunk-31-13.png" style="display: block; margin: auto;" />
+
+    ## Picking joint bandwidth of 0.262
+
+    ## Picking joint bandwidth of 0.252
+
+    ## Picking joint bandwidth of 0.295
+
+    ## Picking joint bandwidth of 0.235
+
+    ## Picking joint bandwidth of 0.271
+
+    ## Picking joint bandwidth of 0.232
+
+    ## Picking joint bandwidth of 0.224
+
+<img src="README_files/figure-gfm/unnamed-chunk-31-14.png" style="display: block; margin: auto;" />
+
+    ## Picking joint bandwidth of 0.28
+
+    ## Picking joint bandwidth of 0.274
+
+    ## Picking joint bandwidth of 0.285
+
+    ## Picking joint bandwidth of 0.236
+
+    ## Picking joint bandwidth of 0.25
+
+    ## Picking joint bandwidth of 0.216
+
+    ## Picking joint bandwidth of 0.245
+
+<img src="README_files/figure-gfm/unnamed-chunk-31-15.png" style="display: block; margin: auto;" />
+
+    ## Picking joint bandwidth of 0.28
+
+    ## Picking joint bandwidth of 0.267
+
+    ## Picking joint bandwidth of 0.298
+
+    ## Picking joint bandwidth of 0.231
+
+    ## Picking joint bandwidth of 0.259
+
+    ## Picking joint bandwidth of 0.221
+
+    ## Picking joint bandwidth of 0.238
+
+<img src="README_files/figure-gfm/unnamed-chunk-31-16.png" style="display: block; margin: auto;" />
+
+    ## Picking joint bandwidth of 0.237
+
+    ## Picking joint bandwidth of 0.229
+
+    ## Picking joint bandwidth of 0.228
+
+    ## Picking joint bandwidth of 0.206
+
+    ## Picking joint bandwidth of 0.236
+
+    ## Picking joint bandwidth of 0.223
+
+    ## Picking joint bandwidth of 0.197
+
+<img src="README_files/figure-gfm/unnamed-chunk-31-17.png" style="display: block; margin: auto;" />
+
+    ## Picking joint bandwidth of 0.3
+
+    ## Picking joint bandwidth of 0.322
+
+    ## Picking joint bandwidth of 0.369
+
+    ## Picking joint bandwidth of 0.216
+
+    ## Picking joint bandwidth of 0.362
+
+    ## Picking joint bandwidth of 0.274
+
+    ## Picking joint bandwidth of 0.243
+
+<img src="README_files/figure-gfm/unnamed-chunk-31-18.png" style="display: block; margin: auto;" />
 
 > ## boxplot distribution in usage groups in each drug for each score
 
-<img src="README_files/figure-gfm/unnamed-chunk-23-1.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-23-2.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-23-3.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-23-4.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-23-5.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-23-6.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-23-7.png" style="display: block; margin: auto;" />
+<img src="README_files/figure-gfm/unnamed-chunk-32-1.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-32-2.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-32-3.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-32-4.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-32-5.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-32-6.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-32-7.png" style="display: block; margin: auto;" />
 
 > ## score changes with usage increase for predifined drug groups
 
-<img src="README_files/figure-gfm/unnamed-chunk-24-1.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-24-2.png" style="display: block; margin: auto;" />
+<img src="README_files/figure-gfm/unnamed-chunk-33-1.png" style="display: block; margin: auto;" /><img src="README_files/figure-gfm/unnamed-chunk-33-2.png" style="display: block; margin: auto;" />
 
 > score changes with age
 
@@ -527,7 +934,7 @@ for (i in score.cols) {
 }
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-25-1.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-25-2.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-25-3.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-25-4.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-25-5.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-25-6.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-25-7.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-34-1.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-34-2.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-34-3.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-34-4.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-34-5.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-34-6.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-34-7.png)<!-- -->
 
 ``` r
 for (i in score.cols) {
@@ -537,7 +944,7 @@ for (i in score.cols) {
 }
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-26-1.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-26-2.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-26-3.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-26-4.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-26-5.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-26-6.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-26-7.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-35-1.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-35-2.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-35-3.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-35-4.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-35-5.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-35-6.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-35-7.png)<!-- -->
 
 ``` r
 data %>%
@@ -551,7 +958,7 @@ data %>%
 
     ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
 
-![](README_files/figure-gfm/unnamed-chunk-27-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-36-1.png)<!-- -->
 
 ``` r
 data %>%
@@ -568,7 +975,7 @@ data %>%
   facet_wrap(~score)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-27-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-36-2.png)<!-- -->
 
 > ## MCA
 
@@ -586,20 +993,20 @@ dane <- data %>%
 res.mca <- MCA(dane)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-29-1.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-29-2.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-29-3.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-38-1.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-38-2.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-38-3.png)<!-- -->
 
 ``` r
 res.km = kmeans(res.mca$ind$coord, centers=2, nstart=25, iter.max=50)
 fviz_mfa_ind(res.mca, habillage=as.factor(res.km$cluster), palette=c("darkred", "indianred2"), addEllipses=T, repel=T, geom="point")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-30-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-39-1.png)<!-- -->
 
 ``` r
 fviz_nbclust(res.mca$ind$coord, kmeans, method = "silhouette")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-30-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-39-2.png)<!-- -->
 
 ``` r
 fviz_mca_biplot(res.mca, 
@@ -607,7 +1014,7 @@ fviz_mca_biplot(res.mca,
                ggtheme = theme_minimal(), label = FALSE)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-32-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-41-1.png)<!-- -->
 
 ``` r
 fviz_mca_var(res.mca, choice = "mca.cor", 
@@ -615,7 +1022,7 @@ fviz_mca_var(res.mca, choice = "mca.cor",
             ggtheme = theme_minimal())
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-33-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-42-1.png)<!-- -->
 
 ``` r
 fviz_mca_var(res.mca, col.var = "cos2",
@@ -625,27 +1032,27 @@ fviz_mca_var(res.mca, col.var = "cos2",
              select.var = list(cos2 = 0.15))
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-34-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-43-1.png)<!-- -->
 
 ``` r
 # Contributions of rows to dimension 1
 fviz_contrib(res.mca, choice = "var", axes = 1, top = 15)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-35-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-44-1.png)<!-- -->
 
 ``` r
 # Contributions of rows to dimension 2
 fviz_contrib(res.mca, choice = "var", axes = 2, top = 15)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-35-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-44-2.png)<!-- -->
 
 ``` r
 fviz_contrib(res.mca, choice = "var", axes = 1:2, top = 15)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-35-3.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-44-3.png)<!-- -->
 
 ``` r
 fviz_mca_ind(res.mca, col.ind = "cos2", 
@@ -654,7 +1061,7 @@ fviz_mca_ind(res.mca, col.ind = "cos2",
              labels=F)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-36-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-45-1.png)<!-- -->
 
 ``` r
 for (i in colnames(dane)) {
@@ -666,7 +1073,7 @@ for (i in colnames(dane)) {
 }
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-37-1.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-37-2.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-37-3.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-37-4.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-37-5.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-37-6.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-37-7.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-37-8.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-37-9.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-37-10.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-37-11.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-37-12.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-46-1.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-46-2.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-46-3.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-46-4.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-46-5.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-46-6.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-46-7.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-46-8.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-46-9.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-46-10.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-46-11.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-46-12.png)<!-- -->
 
 > ## FAMD
 
@@ -680,77 +1087,77 @@ for (col in cols) {
 res.famd = FAMD(features)
 ```
 
-    ## Warning: ggrepel: 1476 unlabeled data points (too many overlaps). Consider
+    ## Warning: ggrepel: 1466 unlabeled data points (too many overlaps). Consider
     ## increasing max.overlaps
 
-    ## Warning: ggrepel: 23 unlabeled data points (too many overlaps). Consider
+    ## Warning: ggrepel: 25 unlabeled data points (too many overlaps). Consider
     ## increasing max.overlaps
 
-![](README_files/figure-gfm/unnamed-chunk-42-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-51-1.png)<!-- -->
 
-    ## Warning: ggrepel: 1476 unlabeled data points (too many overlaps). Consider
+    ## Warning: ggrepel: 1466 unlabeled data points (too many overlaps). Consider
     ## increasing max.overlaps
 
-![](README_files/figure-gfm/unnamed-chunk-42-2.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-42-3.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-51-2.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-51-3.png)<!-- -->
 
     ## Warning: ggrepel: 2 unlabeled data points (too many overlaps). Consider
     ## increasing max.overlaps
 
-![](README_files/figure-gfm/unnamed-chunk-42-4.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-42-5.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-51-4.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-51-5.png)<!-- -->
 
 ``` r
 fviz_famd_var(res.famd, "quanti.var", repel=T, col.var="contrib")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-43-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-52-1.png)<!-- -->
 
 ``` r
 fviz_famd_var(res.famd, "quali.var", repel=T, col.var="contrib")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-44-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-53-1.png)<!-- -->
 
 ``` r
 fviz_famd_var(res.famd, "var", repel=T, col.var="coord")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-45-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-54-1.png)<!-- -->
 
 ``` r
 fviz_screeplot(res.famd)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-46-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-55-1.png)<!-- -->
 
 ``` r
 as.data.frame(res.famd$eig)
 ```
 
     ##        eigenvalue percentage of variance cumulative percentage of variance
-    ## comp 1   3.145196               9.828737                          9.828737
-    ## comp 2   1.908121               5.962877                         15.791614
-    ## comp 3   1.385673               4.330229                         20.121843
-    ## comp 4   1.270308               3.969712                         24.091555
-    ## comp 5   1.217519               3.804746                         27.896301
+    ## comp 1   3.152053               9.850165                          9.850165
+    ## comp 2   1.928225               6.025703                         15.875868
+    ## comp 3   1.339035               4.184485                         20.060353
+    ## comp 4   1.299138               4.059806                         24.120159
+    ## comp 5   1.193038               3.728244                         27.848403
 
 ``` r
 fviz_mfa_ind(res.famd, geom="point")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-48-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-57-1.png)<!-- -->
 
 ``` r
 res.km = kmeans(res.famd$ind$coord, centers=2, nstart=25, iter.max=50)
 fviz_mfa_ind(res.famd, habillage=as.factor(res.km$cluster), palette=c("darkred", "indianred2"), addEllipses=T, repel=T, geom="point")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-48-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-57-2.png)<!-- -->
 
 ``` r
 fviz_nbclust(res.famd$ind$coord, kmeans, method = "silhouette")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-48-3.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-57-3.png)<!-- -->
 
 ``` r
 for (i in feature.cols) {
@@ -762,17 +1169,9 @@ for (i in feature.cols) {
 }
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-49-1.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-49-2.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-49-3.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-49-4.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-49-5.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-58-1.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-58-2.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-58-3.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-58-4.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-58-5.png)<!-- -->
 
-``` r
-display.brewer.all()
-```
-
-![](README_files/figure-gfm/unnamed-chunk-54-1.png)<!-- -->
-
-``` r
-brewer.pal.info
-```
+<img src="README_files/figure-gfm/unnamed-chunk-63-1.png" style="display: block; margin: auto;" />
 
     ##          maxcolors category colorblind
     ## BrBG            11      div       TRUE
