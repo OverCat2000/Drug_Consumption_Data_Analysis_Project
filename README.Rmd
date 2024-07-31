@@ -150,6 +150,8 @@ ggplot(temp, aes(y=Education)) +
   scale_fill_brewer(palette="RdBu") +
   labs(title="dangerous drug usage in education groups")
 
+
+
 ```
 
 > ## plot the distribution in age levels in **temp**
@@ -204,14 +206,20 @@ for (i in stimulants) {
 > #### age group distribution in each usage group
 
 ```{r}
-i = c("Nicotine")
+i = c("Heroin")
+
 data %>%
-  group_by(!!sym(i), Age) %>%
-  tally() %>%
-  ggplot(., aes(y=Age, x=n, fill=Age)) +
-  geom_bar(stat="identity") +
-  scale_fill_ft() +
-  facet_wrap(vars(!!sym(i)))
+  mutate_at(vars(score.cols), ~ cut(.,
+                                    breaks=c(-Inf, -1, 0, 1, Inf),
+                                    labels=c("Very Low", "Low", "High", "Very High"),
+                                    )
+  ) %>%
+  gather(key="score", value="level", score.cols) %>%
+  mutate(level = factor(level, levels=c("Very Low", "Low", "High", "Very High"))) %>%
+  filter(!!sym(i) >= 4) %>%
+  ggplot(., aes(y=level, fill=level)) +
+  geom_bar() +
+  facet_wrap(~score)
 
 data %>%
   mutate(group = ifelse(!!sym(i) >= 4, "active", "inactive"))%>%
@@ -249,7 +257,7 @@ data %>%
 ```{r}
 i = "Escore"
 
-drug.cols.new = drug.cols[!drug.cols %in% c("Caff", "Choc", "Alcohol", "Cannabis", "Nicotine")]
+drug.cols.new = drug.cols[!drug.cols %in% c("Caff", "Choc", "Alcohol", "Nicotine", "Cannabis")]
 
 for (i in score.cols) {
   score.popular.drugs <- df %>%
@@ -351,9 +359,9 @@ data %>%
 
 > ## popular Ages groups in each drug
 
-```{r}
+```{r fig.align="center", echo = FALSE,fig.width = 10}
 plt1 = data %>%
-  gather(., key="drug", value="usage", drug.cols) %>%
+  gather(., key="drug", value="usage", drug.cols.new) %>%
   filter(usage >= 4) %>%
   mutate(drug = fct_reorder(.f = drug,
                             .x = Age,
@@ -365,7 +373,7 @@ plt1 = data %>%
   theme(legend.position="bottom")
 
 age.popular.drugs = data %>%
-  gather(., key="drug", value="usage", drug.cols) %>%
+  gather(., key="drug", value="usage", drug.cols.new) %>%
   filter(usage >= 4) %>%
   group_by(Age, drug) %>%
   tally() %>%
@@ -375,7 +383,7 @@ age.popular.drugs = data %>%
   distinct(drug)
 
 plt2 = data %>%
-  gather(., key="drug", value="usage", drug.cols) %>%
+  gather(., key="drug", value="usage", drug.cols.new) %>%
   filter(usage >= 4) %>%
   mutate(drug = if_else(drug %in% c(age.popular.drugs)$drug, drug, "other")) %>%
   ggplot(., aes(y=Age, fill=drug)) +
@@ -394,17 +402,17 @@ print(plt2)
 
 
 education.popular.drugs = data %>%
-  gather(key="drug", value="usage", drug.cols) %>%
+  gather(key="drug", value="usage", drug.cols.new) %>%
   filter(usage >= 4) %>%
   group_by(Education, drug) %>%
   tally() %>%
-  slice_max(order_by=n, n=6) %>%
+  slice_max(order_by=n, n=5) %>%
   ungroup() %>%
   distinct(drug) %>%
   pull()
 
 data %>%
-  gather(key="drug", value="usage", drug.cols) %>%
+  gather(key="drug", value="usage", drug.cols.new) %>%
   filter(usage >= 4) %>%
   mutate(drug = if_else(drug %in% education.popular.drugs, drug, "other")) %>%
   ggplot(aes(y=Education, fill=drug)) +
@@ -419,17 +427,18 @@ data %>%
 ```{r}
 
 country.popular.drugs = data %>%
-  gather(key="drug", value="usage", drug.cols) %>%
+  gather(key="drug", value="usage", drug.cols.new) %>%
   filter(usage >= 4) %>%
   group_by(Country, drug) %>%
   tally() %>%
-  slice_max(order_by=n, n=7) %>%
+  slice_max(order_by=n, n=6) %>%
   ungroup() %>%
   distinct(drug) %>%
   pull()
+country.popular.drugs
 
 data %>%
-  gather(key="drug", value="usage", drug.cols) %>%
+  gather(key="drug", value="usage", drug.cols.new) %>%
   filter(usage >= 4) %>%
   mutate(drug = if_else(drug %in% country.popular.drugs, drug, "other")) %>%
   ggplot(aes(y=Country, fill=drug)) +
