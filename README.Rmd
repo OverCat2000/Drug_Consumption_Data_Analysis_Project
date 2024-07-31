@@ -252,6 +252,56 @@ data %>%
   
 ```
 
+
+```{r}
+i = c("Nicotine")
+
+data %>%
+  mutate_at(vars(score.cols), ~ cut(.,
+                                    breaks=c(-Inf, -1, 0, 1, Inf),
+                                    labels=c("Very Low", "Low", "High", "Very High"),
+                                    )
+  ) %>%
+  gather(key="score", value="level", score.cols) %>%
+  mutate(level = factor(level, levels=c("Very Low", "Low", "High", "Very High"))) %>%
+  filter(!!sym(i) >= 4) %>%
+  ggplot(., aes(y=level, fill=level)) +
+  geom_bar() +
+  facet_wrap(~score)
+
+data %>%
+  mutate(group = ifelse(!!sym(i) >= 4, "active", "inactive"))%>%
+  ggplot(., aes(x=Impulsive, y=group, fill=group)) +
+    geom_joy(scale=1, alpha=0.7, rel_min_height=0.02)
+
+data %>%
+  mutate(group = ifelse(!!sym(i) >= 4, "active", "inactive"))%>%
+  ggplot(., aes(x=SS, y=group, fill=group)) +
+    geom_joy(scale=1, alpha=0.7, rel_min_height=0.02)
+
+data %>%
+  mutate(group = ifelse(!!sym(i) >= 4, "active", "inactive")) %>%
+  ggplot(., aes(y=Education, fill=group)) +
+  geom_bar(position="fill")
+
+data %>%
+  mutate(group = ifelse(!!sym(i) >= 4, "active", "inactive")) %>%
+  ggplot(., aes(y=Age, fill=group)) +
+  geom_bar(position="fill")
+
+data %>%
+  mutate(group = ifelse(!!sym(i) >= 4, "active", "inactive")) %>%
+  mutate(Country=fct_reorder(.f = Country, 
+                          .x = group,
+                          .fun = function(.x) mean(.x == "active"),
+                          .desc = TRUE)) %>%
+  ggplot(., aes(y=Country, fill=group)) +
+  geom_bar(position="fill")
+
+```
+
+
+
 > ## popular drugs within high Escore individuals
 
 ```{r}
