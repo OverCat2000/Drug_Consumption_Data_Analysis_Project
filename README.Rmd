@@ -108,6 +108,7 @@ hallucinogens <- c("LSD", "Mushrooms", "Ketamine", "Cannabis", "Ecstasy")
 ```{r}
 labels = data[, 13:30]
 features = data[, 1:12]
+features
 
 df <- data %>%
   mutate_at(vars(score.cols), ~ cut(.,
@@ -254,7 +255,7 @@ data %>%
 
 
 ```{r}
-i = c("Nicotine")
+i = c("LSD")
 
 data %>%
   mutate_at(vars(score.cols), ~ cut(.,
@@ -376,6 +377,22 @@ data %>%
   cor(., use = "complete.obs") %>%
   corrplot(., method = "square", type = "lower", order = 'alphabet', tl.col = "black", tl.srt = 45, diag = F)
 
+```
+```{r}
+library(car)
+library(nnet)
+temp <- cbind(features, Alcohol=labels$Alcohol)
+model <- multinom(Alcohol ~., data = temp)
+vif(model)
+
+temp2 <- cbind(features[score.cols], Alcohol=labels$Alcohol)
+model2 <- multinom(Alcohol ~., data = temp2)
+vif(model2)
+
+```
+
+
+```{r}
 ```
 
 
