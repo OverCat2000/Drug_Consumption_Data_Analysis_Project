@@ -1,0 +1,278 @@
+---
+title: "decision_boundary"
+output: github_document
+---
+
+```{r}
+library(tidyverse)
+library(caret)
+library(FactoMineR)
+library(factoextra)
+library(class)   # For kNN
+library(e1071) # For SVM
+library(dplyr)
+
+```
+
+```{r}
+data = read.csv("drug.csv")
+```
+
+
+```{r}
+data$Education = factor(data$Education, levels=c("Doctorate Degree", "Masters Degree",
+                                "University Degree", "Professional Certificate/ Diploma",
+                                "Some College,No Certificate Or Degree", "Left School at 18 years",
+                                "Left School at 17 years", "Left School at 16 years",
+                                "Left School Before 16 years"), ordered=T)
+
+```
+
+
+```{r}
+data = data %>%
+  mutate(across(c(13:32), ~ recode(.,
+                                'CL0'= 0,
+                                'CL1'= 1,
+                                'CL2'= 2,
+                                'CL3'= 3,
+                                'CL4'= 4,
+                                'CL5'= 5,
+                                'CL6'= 6,
+                )))
+
+data <- data %>%
+  mutate(Age = case_when(
+    Age %in% c("55 - 64", "65+") ~ "55+",
+    TRUE ~ Age
+  ))
+
+```
+
+
+```{r}
+set.seed(42)
+data <- data %>%
+  filter(Semer == 0)
+  
+trainIndex <- createDataPartition(data$Alcohol, p=0.8, times=1, list=F)
+data <- data[trainIndex, ]
+val <- data[-trainIndex, ]
+
+data <- data %>%
+  select(-all_of(c("Semer", "X")))
+```
+
+
+```{r}
+drug.cols = colnames(data[, 13:30])
+score.cols = colnames(data[, 6:12])
+feature.cols = colnames(data[, 1:5])
+```
+
+
+```{r}
+labels = data[, 13:30]
+features = data[, 1:12]
+
+df <- data %>%
+  mutate_at(vars(score.cols), ~ cut(.,
+                                    breaks=c(-Inf, -1, 0, 1, Inf),
+                                    labels=c("Very Low", "Low", "High", "Very High"),
+                                    ))
+```
+```{r}
+```
+
+
+```{r}
+labels.binary <- labels %>%
+  mutate(across(everything(), ~ if_else(. <= 3, 0, 1)))
+dim(labels)
+dim(labels.binary)
+```
+
+
+```{r}
+res.pca <- PCA(labels.binary)
+
+```
+
+
+```{r}
+# res.km = kmeans(res.pca$ind$coord, centers=2, nstart=25, iter.max=50)
+# fviz_mfa_ind(res.pca, habillage=as.factor(res.km$cluster), palette=c("darkred", "indianred2", "hotpink"), addEllipses=T, repel=T, geom="point")
+# 
+# fviz_nbclust(res.pca$ind$coord, kmeans, method = "silhouette")
+
+res.km <- kmeans(labels.binary, centers = 2, nstart = 25, iter.max = 50)
+fviz_nbclust(labels.binary, kmeans, method = "silhouette")
+
+fviz_cluster(res.km, data = labels.binary,
+             ellipse.type = "convex", # Type of ellipses
+             palette = "jco",         # Color palette
+             ggtheme = theme_minimal(), # Minimal theme
+             main = "K-means Clustering of Iris Dataset"
+)
+
+```
+
+
+```{r}
+for (i in colnames(labels)) {
+  plt <- labels.binary %>%
+    mutate(cluster = res.km$cluster) %>%
+    ggplot(aes(x=as.factor(cluster), fill=as.factor(!!sym(i)))) +
+    geom_bar(position="fill")
+  print(plt)
+}
+
+```
+
+
+```{r}
+# Contributions of rows to dimension 1
+fviz_contrib(res.pca, choice = "var", axes = 1, top = 15)
+
+# Contributions of rows to dimension 2
+fviz_contrib(res.pca, choice = "var", axes = 2, top = 15)
+
+fviz_contrib(res.pca, choice = "var", axes = 1:2, top = 15)
+
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+cols = c("Country", "Ethnicity")
+
+for (col in cols) {
+  features[[col]] = recode_factor(features[[col]], "Other" = paste0(col, "other"))
+}
+
+res.famd = FAMD(features)
+```
+
+
+```{r}
+as.data.frame(res.famd$eig)
+```
+
+
+```{r}
+scores <- res.famd$ind
+
+
+dane <- scores$coord %>%
+  as.data.frame() %>%
+  bind_cols(labels)
+  
+
+```
+
+
+```{r}
+dane %>%
+  mutate(across(drug.cols, ~ if_else(. > 3, "active", "inactive"))) %>%
+  ggplot(., aes(x=Dim.1, y=Dim.2, color=Cannabis)) +
+  geom_point()
+
+```
+
+
+```{r}
+x.range <-  range(dane$Dim.1)
+y.range <- range(dane$Dim.2)
+
+x.vals <- seq(x.range[1], x.range[2], length.out=100)
+y.vals <- seq(y.range[1], y.range[2], length.out=100)
+
+grid <- expand.grid(Dim.1=x.vals, Dim.2=y.vals)
+
+```
+
+```{r}
+dt <- dane %>%
+  mutate(across(drug.cols, ~ if_else(. > 3, 1, 0)))
+ 
+logit.model <- glm(Cannabis ~ Dim.1 + Dim.2, data=dt, family=binomial(link = "logit"))
+
+```
+
+
+```{r}
+predictions <- predict(logit.model, newdata=grid, type="response")
+```
+
+
+```{r}
+preds <- as.integer(predictions > 0.5)
+
+```
+
+
+```{r}
+ggplot() +
+  geom_point(dt, mapping=aes(x = Dim.1, y = Dim.2, color = factor(Cannabis))) +
+  geom_contour(data = grid, aes(z = preds, x=Dim.1, y=Dim.2), bins=20)
+  
+```
+
+
+```{r}
+p <- dt %>%
+  select(c(Dim.1, Dim.2, Cannabis))
+knn_preds = knn(train=p[, 1:2], test=grid, cl=p$Cannabis, k=30)
+
+ggplot() +
+  geom_point(dt, mapping=aes(x = Dim.1, y = Dim.2, color=as.factor(Cannabis))) +
+  geom_contour(data = grid, aes(z = as.numeric(as.character(knn_preds)), x=Dim.1, y=Dim.2))
+  
+```
+
+
+```{r}
+svm.model <- svm(Cannabis ~ ., p, kernel = "radial")
+svm_probs <- predict(svm.model, newdata=grid)
+svm_preds <- as.integer(svm_probs > 0.5)
+
+ggplot() +
+  geom_point(dt, mapping=aes(x = Dim.1, y = Dim.2, color = factor(Cannabis))) +
+  geom_contour(data = grid, aes(z = svm_preds, x=Dim.1, y=Dim.2), bins=20)
+
+
+```
+
+
+```{r}
+qda.model <- MASS::qda(Cannabis ~ ., data = p)
+
+qda_res <- predict(qda.model, newdata=grid)
+qda_preds <- as.numeric(as.character(qda_res$class))
+
+ggplot() +
+  geom_point(dt, mapping=aes(x = Dim.1, y = Dim.2, color = factor(Cannabis))) +
+  geom_contour(data = grid, aes(z = qda_preds, x=Dim.1, y=Dim.2), bins=20)
+
+
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
